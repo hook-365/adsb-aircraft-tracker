@@ -1,0 +1,14 @@
+{
+  "name": "ADSB Aircraft Tracker",
+  "content_in_root": false,
+  "zip_release": true,
+  "filename": "adsb-aircraft-tracker.zip",
+  "hide_default_branch": false,
+  "domains": [
+    "adsb_aircraft_tracker"
+  ],
+  "country": ["US"],
+  "homeassistant": "2023.1.0",
+  "iot_class": "Local Polling",
+  "render_readme": true
+}
