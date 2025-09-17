@@ -3,7 +3,6 @@
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
-[![hacs][hacsbadge]][hacs]
 
 A comprehensive Home Assistant integration for tracking aircraft using ADSB data from dump1090/tar1090 feeders.
 
@@ -556,8 +555,6 @@ This project is under the [MIT License](LICENSE).
 
 [commits-shield]: https://img.shields.io/github/commit-activity/y/hook-365/adsb-aircraft-tracker.svg?style=for-the-badge
 [commits]: https://github.com/hook-365/adsb-aircraft-tracker/commits/main
-[hacs]: https://github.com/custom-components/hacs
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/github/license/hook-365/adsb-aircraft-tracker.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/hook-365/adsb-aircraft-tracker.svg?style=for-the-badge
 [releases]: https://github.com/hook-365/adsb-aircraft-tracker/releases
