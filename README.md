@@ -12,15 +12,10 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 - Real-time aircraft monitoring within configurable distance
 - Detailed aircraft information (tail number, flight, altitude, speed, type)
 - Top 3 closest aircraft with comprehensive details
-
-🪖 **Military Aircraft Detection**
-- Database-only detection using verified tar1090-db military aircraft (16,896+ aircraft)
-- Zero false positives - only confirmed military aircraft
-- Detailed detection reasons for each aircraft
-- Automatic database updates every 24 hours
+- Aircraft type database with 85,000+ aircraft models
 
 📱 **Smart Notifications**
-- Mobile app notifications for military aircraft
+- Mobile app notifications for specific aircraft types
 - Low altitude aircraft alerts
 - Emergency squawk code notifications (7700/7600/7500)
 - Customizable external ADSB URL links
@@ -74,9 +69,10 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 After initial setup, click **CONFIGURE** on your integration to access advanced options:
 
-- **Military Detection**: Always enabled with database-only detection
 - **Notification Device**: Select your mobile device for alerts
 - **External URL**: Custom ADSB website URL for notifications
+- **Update Interval**: Adjust data refresh frequency
+- **Distance Limit**: Set maximum tracking range
 
 ## Entities
 
@@ -511,20 +507,6 @@ cards:
     unit: ft
 ```
 
-## Military Detection Logic
-
-The integration uses a database-only approach for 100% accurate military aircraft detection:
-
-### Detection Method
-- **Primary Source**: tar1090-db military aircraft database (Mictronics)
-- **Database Size**: 16,896+ verified military aircraft
-- **Detection**: ICAO hex code lookup in verified military database only
-- **Updates**: Automatic database refresh every 24 hours
-- **Accuracy**: Zero false positives - only definitively military aircraft
-
-### No Pattern Matching
-Previous versions used pattern matching for callsigns, operators, and aircraft types. This has been completely removed to eliminate false positives. Only aircraft verified as military in the official database will trigger alerts.
-
 ## Troubleshooting
 
 ### No Aircraft Data
@@ -532,16 +514,23 @@ Previous versions used pattern matching for callsigns, operators, and aircraft t
 - Test the URL manually: `http://YOUR_IP:8085/data/aircraft.json`
 - Check Home Assistant logs for connection errors
 
-### Military Detection Issues
-- Use the `test_military_detection` service to debug
-- Check `sensor.adsb_military_details` for detection reasons
-- Monitor `sensor.adsb_military_database_status` for database health
-- Use `load_military_database` service to manually refresh database
-
 ### Notifications Not Working
 - Verify mobile app device is selected in options
 - Check notification permissions on your mobile device
 - Test notifications with other Home Assistant integrations
+
+### Database Issues
+- Check `sensor.adsb_military_database_status` for database health
+- Use the `refresh_data` service to manually update aircraft data
+
+## Credits
+
+This integration uses the following open-source databases:
+
+- **[tar1090-db](https://github.com/Mictronics/readsb-protobuf)** by Mictronics - Military aircraft database with 16,896+ verified military aircraft ICAO hex codes
+- **ICAO Aircraft Types Database** - Comprehensive aircraft type information for 85,000+ aircraft models
+
+Special thanks to the ADSB community for maintaining these valuable resources.
 
 ## Contributing
 
