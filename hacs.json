@@ -1,11 +1,5 @@
 {
   "name": "ADSB Aircraft Tracker",
   "content_in_root": true,
-  "render_readme": true,
-  "domains": [
-    "adsb_aircraft_tracker"
-  ],
-  "country": ["US"],
-  "homeassistant": "2023.1.0",
-  "iot_class": "Local Polling"
+  "render_readme": true
 }
