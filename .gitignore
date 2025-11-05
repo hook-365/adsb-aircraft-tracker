@@ -70,3 +70,6 @@ logo.png
 
 # MCP configuration (local only)
 .mcp.json
+
+# Claude Code instructions (local only)
+CLAUDE.md
