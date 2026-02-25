@@ -81,16 +81,18 @@ class ADSBNotificationManager:
     def close_aircraft_distance(self) -> float:
         """Get close aircraft distance threshold in miles."""
         return (
-            self.config_entry.options.get(CONF_CLOSE_AIRCRAFT_DISTANCE,
-            self.config_entry.data.get(CONF_CLOSE_AIRCRAFT_DISTANCE, DEFAULT_CLOSE_AIRCRAFT_DISTANCE))
+            self.config_entry.options.get(CONF_CLOSE_AIRCRAFT_DISTANCE) or
+            self.config_entry.data.get(CONF_CLOSE_AIRCRAFT_DISTANCE) or
+            DEFAULT_CLOSE_AIRCRAFT_DISTANCE
         )
     
     @property
     def close_aircraft_altitude(self) -> int:
         """Get close aircraft altitude threshold in feet."""
         return (
-            self.config_entry.options.get(CONF_CLOSE_AIRCRAFT_ALTITUDE,
-            self.config_entry.data.get(CONF_CLOSE_AIRCRAFT_ALTITUDE, DEFAULT_CLOSE_AIRCRAFT_ALTITUDE))
+            self.config_entry.options.get(CONF_CLOSE_AIRCRAFT_ALTITUDE) or
+            self.config_entry.data.get(CONF_CLOSE_AIRCRAFT_ALTITUDE) or
+            DEFAULT_CLOSE_AIRCRAFT_ALTITUDE
         )
     
     @property
@@ -146,18 +148,19 @@ class ADSBNotificationManager:
         altitude_threshold = self.close_aircraft_altitude
             
         # Find aircraft within configured distance and altitude thresholds
+        # Note: Use "or 999" to handle None values (get() default only works if key is missing)
         close_aircraft = [
             plane for plane in aircraft_list
-            if (plane.get("distance_mi", 999) <= distance_threshold and 
-                plane.get("altitude_ft", 50000) < altitude_threshold and
-                plane.get("distance_mi", 999) > 0)
+            if ((plane.get("distance_mi") or 999) <= distance_threshold and
+                (plane.get("altitude_ft") or 50000) < altitude_threshold and
+                (plane.get("distance_mi") or 999) > 0)
         ]
         
         if not close_aircraft:
             self._last_close_aircraft = None
             return
             
-        closest = min(close_aircraft, key=lambda x: x.get("distance_mi", 999))
+        closest = min(close_aircraft, key=lambda x: x.get("distance_mi") or 999)
         closest_hex = closest.get("hex")
         
         # Only notify if it's a different aircraft

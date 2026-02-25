@@ -124,8 +124,8 @@ class ADSBClosestAircraftSensor(ADSBSensorBase):
 
 
 class ADSBTopAircraftSensor(ADSBSensorBase):
-    """Sensor for top 3 closest aircraft."""
-    
+    """Sensor for top 5 closest aircraft."""
+
     def __init__(
         self,
         coordinator: ADSBDataUpdateCoordinator,
@@ -133,34 +133,34 @@ class ADSBTopAircraftSensor(ADSBSensorBase):
     ) -> None:
         """Initialize top aircraft sensor."""
         super().__init__(coordinator, config_entry, "top_aircraft")
-        self._attr_name = "ADSB Nearest 3 Aircraft"
+        self._attr_name = "ADSB Nearest 5 Aircraft"
         self._attr_icon = "mdi:format-list-numbered"
-        
+
     @property
     def native_value(self) -> str | None:
         """Return summary of top aircraft."""
         if not self.coordinator.data or not self.coordinator.data.get("aircraft"):
             return "No aircraft detected"
-        
-        aircraft_list = self.coordinator.data["aircraft"][:3]  # Top 3
+
+        aircraft_list = self.coordinator.data["aircraft"][:5]
         count = len(aircraft_list)
-        
+
         if count == 0:
             return "No aircraft detected"
         elif count == 1:
-            return f"1 aircraft detected"
+            return "1 aircraft detected"
         else:
             return f"{count} aircraft detected"
-    
+
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return top 3 aircraft as attributes."""
+        """Return top 5 aircraft as attributes."""
         if not self.coordinator.data or not self.coordinator.data.get("aircraft"):
             return {"status": "No aircraft detected"}
-        
-        aircraft_list = self.coordinator.data["aircraft"][:3]  # Top 3
+
+        aircraft_list = self.coordinator.data["aircraft"][:5]
         attributes = {}
-        
+
         for i, aircraft in enumerate(aircraft_list, 1):
             attributes[f"aircraft_{i}"] = {
                 "hex": aircraft.get("hex"),
@@ -176,10 +176,13 @@ class ADSBTopAircraftSensor(ADSBSensorBase):
                 "operator": aircraft.get("operator"),
                 "squawk": aircraft.get("squawk"),
                 "emergency": aircraft.get("emergency"),
+                "nav_altitude": aircraft.get("nav_altitude"),
+                "nav_heading": aircraft.get("nav_heading"),
+                "vertical_rate_fpm": aircraft.get("vertical_rate_fpm", 0),
                 "latitude": aircraft.get("latitude"),
                 "longitude": aircraft.get("longitude"),
             }
-        
+
         return attributes
 
 
