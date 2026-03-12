@@ -20,6 +20,12 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 - Emergency squawk code notifications (7700/7600/7500)
 - Customizable external ADSB URL links
 
+🗣️ **Voice / Assist Support**
+- Ask "What plane is that?" or "What planes are nearby?"
+- Natural language responses with aircraft identity, type, route, distance, and altitude
+- Flight route lookup (origin/destination) via [adsb.im](https://adsb.im)
+- Works with Home Assistant Assist and voice pipelines
+
 🔧 **Advanced Features**
 - Runtime configuration changes (no restart required)
 - Custom services for testing and manual control
@@ -74,6 +80,42 @@ After initial setup, click **CONFIGURE** on your integration to access advanced 
 - **Update Interval**: Adjust data refresh frequency
 - **Distance Limit**: Set maximum tracking range
 
+## Voice / Assist Support
+
+Ask your Home Assistant voice assistant about aircraft overhead and get a spoken response.
+
+### Setup
+
+1. Go to **Developer Tools → Services**
+2. Call `adsb_aircraft_tracker.install_sentences`
+3. Restart Home Assistant
+
+That's it — the custom sentences are installed and the intent handlers register automatically.
+
+### Example Phrases
+
+| Phrase | What it does |
+|---|---|
+| "What plane is that?" | Identifies the closest aircraft with route info |
+| "What aircraft is overhead?" | Same as above, alternate phrasing |
+| "What planes are nearby?" | Lists the 3 nearest aircraft |
+| "What is the closest aircraft?" | Same as above, alternate phrasing |
+
+### Example Response
+
+> "That's United UAL1234, a Boeing 737-800, flying from Chicago to Denver, about 4.2 mi away, at 12,000 feet."
+
+For general aviation aircraft without airline routes:
+
+> "That's Rhinelander Flying Service Inc N441DP, a Cessna 172 Skyhawk, about 2.9 mi away, at 1,900 feet."
+
+### How It Works
+
+- The integration registers two intent handlers (`ADSBWhatPlane` and `ADSBNearestAircraft`) that respond to natural language queries
+- Flight route data (origin/destination airports) is fetched from the [adsb.im](https://adsb.im) route API and cached for 4 hours
+- Works with Home Assistant's built-in Assist pipeline, or any voice pipeline configured in your system
+- Can also be triggered from Developer Tools → Conversation for testing
+
 ## Entities
 
 The integration creates the following entities:
@@ -126,6 +168,9 @@ service: adsb_aircraft_tracker.test_military_detection
 service: adsb_aircraft_tracker.get_aircraft_details
 data:
   hex_code: "abc123"
+
+# Install voice assistant sentence triggers
+service: adsb_aircraft_tracker.install_sentences
 ```
 
 ## Notifications
@@ -525,10 +570,13 @@ cards:
 
 ## Credits
 
-This integration uses the following open-source databases:
+This integration uses the following open-source databases and APIs:
 
 - **[tar1090-db](https://github.com/Mictronics/readsb-protobuf)** by Mictronics - Military aircraft database with 16,896+ verified military aircraft ICAO hex codes
 - **ICAO Aircraft Types Database** - Comprehensive aircraft type information for 85,000+ aircraft models
+- **[adsb.im](https://adsb.im)** - Flight route API for origin/destination airport lookups
+
+Voice/Assist support was inspired by [@nwithan8](https://github.com/nwithan8)'s [tutorial and concept](https://github.com/hook-365/adsb-aircraft-tracker/issues/1).
 
 Special thanks to the ADSB community for maintaining these valuable resources.
 
