@@ -44,9 +44,12 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to ADSB source. Check host and port.",
-      "invalid_host": "Invalid host or port configuration.",
-      "invalid_adsb_data": "Invalid ADSB data format. Ensure your feeder is compatible.",
+      "connection_refused": "Connection refused by your feeder. The host was reached but nothing is listening on that port. Verify your ADSB feeder is running and the port number is correct.",
+      "timeout": "Connection timed out. The host may be unreachable from Home Assistant. Verify the IP address is correct and try opening http://YOUR_IP:PORT/data/aircraft.json in your browser.",
+      "cannot_resolve": "Could not resolve hostname. Check for typos in the address.",
+      "cannot_connect": "Could not connect to ADSB source. Check that the IP address and port are correct and that your feeder is reachable from Home Assistant.",
+      "invalid_host": "Connected to the host but received an unexpected response. This may not be an ADSB feeder, or the port may be serving a different application.",
+      "invalid_adsb_data": "Connected successfully but the response doesn't contain valid ADSB data. Ensure your feeder is dump1090/tar1090 compatible.",
       "unknown": "Unexpected error occurred."
     },
     "abort": {

@@ -60,38 +60,53 @@ def get_user_data_schema(hass=None):
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
-    
-    host = data[CONF_ADSB_HOST]
+
+    host = data[CONF_ADSB_HOST].strip()
     port = data[CONF_ADSB_PORT]
     url = f"http://{host}:{port}/data/aircraft.json"
-    
+
     session = async_get_clientsession(hass)
-    
+
     try:
         async with asyncio.timeout(10):
             async with session.get(url) as response:
                 if response.status != 200:
                     raise InvalidHost(f"HTTP {response.status}")
-                
+
                 json_data = await response.json()
-                
+
                 # Validate required structure
                 if "aircraft" not in json_data:
                     raise InvalidADSBData("Missing aircraft data in response")
-                
+
                 if not isinstance(json_data["aircraft"], list):
                     raise InvalidADSBData("Aircraft data is not a list")
-                
+
                 return {
                     "title": f"ADSB Tracker ({host}:{port})",
                     "aircraft_count": len(json_data["aircraft"]),
                     "last_update": json_data.get("now"),
                 }
-                
+
     except asyncio.TimeoutError:
-        raise CannotConnect("Timeout connecting to ADSB source")
+        raise ConnectionTimeout(
+            f"Timed out connecting to {host}:{port}"
+        )
+    except aiohttp.ClientConnectorError as err:
+        if isinstance(err.os_error, ConnectionRefusedError):
+            raise ConnectionRefused(
+                f"Connection refused by {host}:{port}"
+            )
+        err_msg = str(err).lower()
+        if "not found" in err_msg or "not known" in err_msg or "nodename" in err_msg:
+            raise CannotResolve(
+                f"Cannot resolve hostname: {host}"
+            )
+        raise CannotConnect(f"Network error connecting to {host}:{port}: {err}")
     except aiohttp.ClientError as err:
-        raise CannotConnect(f"Network error: {err}")
+        raise CannotConnect(f"Network error connecting to {host}:{port}: {err}")
+    except (InvalidHost, InvalidADSBData):
+        raise
     except Exception as err:
         _LOGGER.exception("Unexpected error validating ADSB connection")
         raise CannotConnect(f"Unexpected error: {err}")
@@ -132,10 +147,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._validation_info = info
                 return await self.async_step_summary()
 
+            except ConnectionRefused:
+                errors["base"] = "connection_refused"
+            except ConnectionTimeout:
+                errors["base"] = "timeout"
+            except CannotResolve:
+                errors[CONF_ADSB_HOST] = "cannot_resolve"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidHost:
-                errors[CONF_ADSB_HOST] = "invalid_host"
+                errors["base"] = "invalid_host"
             except InvalidADSBData:
                 errors["base"] = "invalid_adsb_data"
             except Exception:  # pylint: disable=broad-except
@@ -235,6 +256,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class CannotConnect(Exception):
     """Error to indicate we cannot connect."""
+
+
+class ConnectionRefused(Exception):
+    """Error to indicate the connection was actively refused."""
+
+
+class ConnectionTimeout(Exception):
+    """Error to indicate the connection timed out."""
+
+
+class CannotResolve(Exception):
+    """Error to indicate hostname resolution failed."""
 
 
 class InvalidHost(Exception):
