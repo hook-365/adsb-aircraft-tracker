@@ -208,6 +208,10 @@
           "description": "Custom test message to send (optional)"
         }
       }
+    },
+    "install_sentences": {
+      "name": "Install Voice Sentences",
+      "description": "Install custom sentence triggers for aircraft voice queries. Restart Home Assistant after running for sentences to take effect."
     }
   }
 }

@@ -112,6 +112,10 @@ class ADSBClosestAircraftSensor(ADSBSensorBase):
             "operator": aircraft.get("operator"),
             "squawk": aircraft.get("squawk"),
             "emergency": aircraft.get("emergency"),
+            "route_origin": aircraft.get("route_origin"),
+            "route_origin_name": aircraft.get("route_origin_name"),
+            "route_destination": aircraft.get("route_destination"),
+            "route_destination_name": aircraft.get("route_destination_name"),
         }
     
     def _get_closest_aircraft(self) -> dict[str, Any] | None:

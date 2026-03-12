@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -19,6 +20,8 @@ from .const import (
 from .coordinator import ADSBDataUpdateCoordinator
 from .notify import ADSBNotificationManager
 from .database_updater import async_setup_database_services
+from .route_client import RouteClient
+from .intent import async_setup_intents
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,14 +45,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
     
-    # Create notification manager
+    # Create notification manager and route client
     notification_manager = ADSBNotificationManager(hass, coordinator, entry)
-    
-    # Store coordinator and notification manager in hass data
+    route_client = RouteClient(hass)
+
+    # Store coordinator, notification manager, and route client in hass data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "notification_manager": notification_manager,
+        "route_client": route_client,
     }
     
     # Setup platforms
@@ -60,10 +65,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Set up database update services
     await async_setup_database_services(hass)
-    
+
+    # Set up voice/Assist intent handlers and services
+    await async_setup_intents(hass)
+    await _async_setup_voice_services(hass)
+
     # Set up notification monitoring
     coordinator.notification_manager = notification_manager
-    
+
     return True
 
 
@@ -181,6 +190,69 @@ async def _async_setup_services(hass: HomeAssistant, entry: ConfigEntry, coordin
         load_military_database_service,
         supports_response=True,
     )
+
+
+_SENTENCES_YAML = """\
+language: en
+intents:
+  ADSBWhatPlane:
+    data:
+      - sentences:
+          - "what plane is that"
+          - "what aircraft is that"
+          - "what is that plane"
+          - "what is that aircraft"
+          - "what plane is overhead"
+          - "what aircraft is overhead"
+          - "what's flying overhead"
+          - "what is flying overhead"
+          - "what plane just flew over"
+          - "identify that plane"
+          - "identify that aircraft"
+  ADSBNearestAircraft:
+    data:
+      - sentences:
+          - "what is the closest aircraft"
+          - "what is the nearest plane"
+          - "what plane is closest to me"
+          - "tell me about the nearest aircraft"
+          - "what aircraft are nearby"
+          - "are there any planes nearby"
+          - "what planes are in the area"
+"""
+
+
+async def _async_setup_voice_services(hass: HomeAssistant) -> None:
+    """Register voice/Assist related services."""
+
+    async def install_sentences_service(call: ServiceCall) -> dict:
+        """Write custom sentences YAML to config/custom_sentences/en/."""
+        sentences_dir = hass.config.path("custom_sentences", "en")
+        sentences_path = os.path.join(sentences_dir, "adsb_aircraft_tracker.yaml")
+
+        def _write_file():
+            os.makedirs(sentences_dir, exist_ok=True)
+            existed = os.path.exists(sentences_path)
+            with open(sentences_path, "w", encoding="utf-8") as f:
+                f.write(_SENTENCES_YAML)
+            return existed
+
+        existed = await hass.async_add_executor_job(_write_file)
+        action = "updated" if existed else "created"
+        _LOGGER.info("ADSB voice sentences %s at %s", action, sentences_path)
+
+        return {
+            "path": sentences_path,
+            "action": action,
+        }
+
+    if not hass.services.has_service(DOMAIN, "install_sentences"):
+        hass.services.async_register(
+            DOMAIN,
+            "install_sentences",
+            install_sentences_service,
+            supports_response=True,
+        )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
