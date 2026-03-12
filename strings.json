@@ -57,7 +57,7 @@
     "step": {
       "init": {
         "title": "ADSB Aircraft Tracker Settings",
-        "description": "Choose which settings you'd like to configure. You can change any of these later by returning to this options menu.",
+        "description": "Fine-tune your aircraft tracking experience. Currently connected to: **{current_host}:{current_port}**\n\n💡 Tip: Changes apply immediately without restarting Home Assistant.",
         "data": {
           "config_area": "Configuration Area"
         }

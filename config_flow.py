@@ -265,9 +265,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             })
         })
 
+        current_host = self.config_entry.data.get(CONF_ADSB_HOST, "unknown")
+        current_port = self.config_entry.data.get(CONF_ADSB_PORT, DEFAULT_ADSB_PORT)
+
         return self.async_show_form(
             step_id="init",
             data_schema=schema,
+            description_placeholders={
+                "current_host": current_host,
+                "current_port": str(current_port),
+            },
         )
 
     async def async_step_basic_settings(
