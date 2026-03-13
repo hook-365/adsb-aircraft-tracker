@@ -21,9 +21,10 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 - Customizable external ADSB URL links
 
 🗣️ **Voice / Assist Support**
-- Ask "What plane is that?" or "What planes are nearby?"
-- Natural language responses with aircraft identity, type, route, distance, and altitude
+- 6 voice intents with 62 sentence variations
+- TTS-friendly output: colloquial model names, airline code expansion, no mispronounced hyphens
 - Flight route lookup (origin/destination) via [adsb.im](https://adsb.im)
+- Filter by type: helicopters, jets, turboprops, military
 - Works with Home Assistant Assist and voice pipelines
 
 🔧 **Advanced Features**
@@ -82,7 +83,7 @@ After initial setup, click **CONFIGURE** on your integration to access advanced 
 
 ## Voice / Assist Support
 
-Ask your Home Assistant voice assistant about aircraft overhead and get a spoken response.
+Ask your Home Assistant voice assistant about aircraft overhead and get natural, TTS-friendly spoken responses.
 
 ### Setup
 
@@ -92,29 +93,64 @@ Ask your Home Assistant voice assistant about aircraft overhead and get a spoken
 
 That's it — the custom sentences are installed and the intent handlers register automatically.
 
-### Example Phrases
+### Intents & Example Phrases
 
-| Phrase | What it does |
-|---|---|
-| "What plane is that?" | Identifies the closest aircraft with route info |
-| "What aircraft is overhead?" | Same as above, alternate phrasing |
-| "What planes are nearby?" | Lists the 3 nearest aircraft |
-| "What is the closest aircraft?" | Same as above, alternate phrasing |
+#### Identify Aircraft — `ADSBWhatPlane`
+> "What plane is that?" · "What's flying overhead?" · "What's up there?" · "What kind of plane is that?" · "Identify that aircraft"
 
-### Example Response
+**Response:** *"That's United 1 2 3, a Boeing 738, flying from Chicago to Denver, about 4 miles away, climbing through 12,000 feet, heading southwest, cruising at 450 knots."*
 
-> "That's United UAL1234, a Boeing 737-800, flying from Chicago to Denver, about 4.2 mi away, at 12,000 feet."
+#### Nearest Aircraft — `ADSBNearestAircraft`
+> "What planes are nearby?" · "Any planes around?" · "What do you see flying?" · "What planes can you see?"
 
-For general aviation aircraft without airline routes:
+**Response:** *"I'm tracking 47 aircraft. The nearest are: United 1 2 3, 4 miles away, at 32,000 feet, heading southwest; Delta 4 5 6, 8 miles away, descending through 15,000 feet; and SkyWest 7 8 9, 12 miles away, at 24,000 feet."*
 
-> "That's Rhinelander Flying Service Inc N441DP, a Cessna 172 Skyhawk, about 2.9 mi away, at 1,900 feet."
+#### Military Status — `ADSBMilitaryStatus`
+> "Any military planes nearby?" · "Are there any military aircraft?" · "Military aircraft status"
+
+**Response:** *"I'm detecting 2 military aircraft. The closest is a Boeing KC 135 Stratotanker, 15 miles away, at 24,000 feet, heading northeast."*
+
+#### Aircraft Count — `ADSBAircraftCount`
+> "How many planes?" · "How many aircraft are you tracking?" · "How many planes are out there?"
+
+**Response:** *"I'm currently tracking 47 aircraft. The closest is 4 miles away."*
+
+#### Flight Route — `ADSBAircraftRoute`
+> "Where is that plane going?" · "What's the flight route?" · "Where did that plane come from?"
+
+**Response:** *"The closest aircraft, United 1 2 3, is flying from Chicago to Denver, about 4 miles away, at 32,000 feet."*
+
+#### Filter by Type — `ADSBAircraftByType`
+> "Any helicopters nearby?" · "Do you see any jets?" · "Are there any props flying?"
+
+Supported types: `helicopters`, `choppers`, `jets`, `airliners`, `turboprops`, `props`, `cessna`, `military`
+
+**Response:** *"I can see 3 helicopters nearby. The closest is 2 miles away, at 1,500 feet."*
+
+### TTS-Friendly Output
+
+All voice responses are formatted for natural text-to-speech pronunciation:
+
+| Raw Data | Spoken As | Why |
+|----------|-----------|-----|
+| `BOEING 737-800` | *Boeing 738* | Title case, colloquial name, no hyphen |
+| `BOEING 777-300ER` | *Boeing triple seven ER* | Colloquial spoken name |
+| `EMBRAER ERJ-190` | *Embraer E190* | Colloquial designation |
+| `UAL123` | *United 1 2 3* | Airline code expanded, digits spelled out |
+| `DAL45` | *Delta 4 5* | Same pattern |
+| `Piper PA-28 Cherokee` | *Piper PA 28 Cherokee* | Hyphen removed (prevents TTS saying "minus") |
+| heading `225°` | *heading southwest* | 8-point cardinal compass |
+| climbing `+1500 fpm` | *climbing through 12,000 feet* | Altitude phrased with vertical context |
+| speed `450 kts` | *cruising at 450 knots* | "cruising" for faster aircraft |
 
 ### How It Works
 
-- The integration registers two intent handlers (`ADSBWhatPlane` and `ADSBNearestAircraft`) that respond to natural language queries
-- Flight route data (origin/destination airports) is fetched from the [adsb.im](https://adsb.im) route API and cached for 4 hours
-- Works with Home Assistant's built-in Assist pipeline, or any voice pipeline configured in your system
-- Can also be triggered from Developer Tools → Conversation for testing
+- 6 intent handlers are registered with Home Assistant's Assist pipeline (hassil)
+- Voice queries go directly through intent recognition — the LLM conversation agent is **not** involved
+- Flight route data (origin/destination) is fetched from [adsb.im](https://adsb.im) and cached for 4 hours
+- Aircraft type filtering uses ICAO engine type, category, and description keyword matching
+- Military detection uses the tar1090-db verified database (same as notification system)
+- Can also be triggered from **Developer Tools → Conversation** for testing
 
 ## Entities
 

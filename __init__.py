@@ -209,6 +209,13 @@ intents:
           - "what plane just flew over"
           - "identify that plane"
           - "identify that aircraft"
+          - "what's that flying"
+          - "what kind of plane is that"
+          - "tell me about that plane"
+          - "what's that plane"
+          - "what's up there"
+          - "what flew over"
+          - "what just flew by"
   ADSBNearestAircraft:
     data:
       - sentences:
@@ -219,6 +226,58 @@ intents:
           - "what aircraft are nearby"
           - "are there any planes nearby"
           - "what planes are in the area"
+          - "what planes can you see"
+          - "any planes around"
+          - "any aircraft nearby"
+          - "what's nearby"
+          - "what planes are near me"
+          - "what do you see flying"
+  ADSBMilitaryStatus:
+    data:
+      - sentences:
+          - "are there any military aircraft"
+          - "any military planes nearby"
+          - "are there military planes"
+          - "any military aircraft around"
+          - "is there anything military flying"
+          - "do you see any military planes"
+          - "military aircraft status"
+          - "any military flights"
+  ADSBAircraftCount:
+    data:
+      - sentences:
+          - "how many planes are being tracked"
+          - "how many aircraft are there"
+          - "how many planes are you tracking"
+          - "how many aircraft can you see"
+          - "aircraft count"
+          - "how many planes"
+          - "how many aircraft"
+          - "how many planes are out there"
+  ADSBAircraftRoute:
+    data:
+      - sentences:
+          - "where is that plane going"
+          - "where is that plane headed"
+          - "where is that aircraft going"
+          - "what is the route"
+          - "where is it flying to"
+          - "where is it going"
+          - "what's the flight route"
+          - "where did that plane come from"
+  ADSBAircraftByType:
+    data:
+      - sentences:
+          - "are there any {type} nearby"
+          - "any {type} overhead"
+          - "do you see any {type}"
+          - "are there {type} around"
+          - "any {type} flying"
+          - "can you see any {type}"
+          - "are there any {type}"
+lists:
+  type:
+    wildcard: true
 """
 
 
