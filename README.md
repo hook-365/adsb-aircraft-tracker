@@ -35,7 +35,7 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ## Requirements
 
-- **Home Assistant** 2023.1 or newer
+- **Home Assistant** 2023.7 or newer (service response support)
 - **ADSB Feeder** (dump1090/tar1090) running on your network
 - **Mobile App** (optional, for notifications)
 

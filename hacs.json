@@ -1,4 +1,4 @@
 {
   "name": "ADSB Aircraft Tracker",
-  "render_readme": true
+  "homeassistant": "2023.7.0"
 }
