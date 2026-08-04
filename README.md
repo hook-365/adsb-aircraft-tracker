@@ -183,7 +183,7 @@ The integration creates the following entities:
 - **Use**: Display the closest aircraft in cards/dashboards
 - *Note: installs that predate the top-5 expansion keep their original entity id (e.g. `sensor.adsb_nearest_5_aircraft`) — Home Assistant never renames existing entities*
 
-#### `sensor.adsb_military_details`
+#### `sensor.adsb_military_aircraft_details`
 - **Value**: Military detection summary (e.g., "Military aircraft detected: 2 aircraft")
 - **Attributes**: Details of detected military aircraft with detection reasons
 - **Use**: Monitor military aircraft activity
@@ -259,7 +259,7 @@ automation:
       - service: notify.persistent_notification
         data:
           title: "Military Aircraft Detected"
-          message: "{{ state_attr('sensor.adsb_military_details', 'summary') }}"
+          message: "{{ state_attr('sensor.adsb_military_aircraft_details', 'summary') }}"
 ```
 
 ### Close Aircraft TTS
@@ -366,7 +366,7 @@ type: custom:mushroom-template-card
 primary: Military Aircraft
 secondary: |
   {% if is_state('binary_sensor.adsb_military_aircraft_present', 'on') %}
-    {{ state_attr('sensor.adsb_military_details', 'summary') }}
+    {{ state_attr('sensor.adsb_military_aircraft_details', 'summary') }}
   {% else %}
     No military aircraft detected
   {% endif %}
@@ -384,7 +384,7 @@ badge_icon: |
 badge_color: red
 tap_action:
   action: more-info
-  entity: sensor.adsb_military_details
+  entity: sensor.adsb_military_aircraft_details
 ```
 
 ### Simple Aircraft Counter
@@ -449,9 +449,11 @@ cards:
     entities:
       - entity: sensor.adsb_closest_aircraft
         name: Aircraft
-        secondary_info: |
-          {% set attrs = state_attr('sensor.adsb_closest_aircraft', 'description') %}
-          {{ attrs if attrs else 'No aircraft detected' }}
+      - type: attribute
+        entity: sensor.adsb_closest_aircraft
+        attribute: description
+        name: Type
+        icon: mdi:airplane-search
       - type: attribute
         entity: sensor.adsb_closest_aircraft
         attribute: distance_display
@@ -542,9 +544,9 @@ card:
   content: |
     ## 🚨 MILITARY AIRCRAFT DETECTED
 
-    {{ state_attr('sensor.adsb_military_details', 'summary') }}
+    {{ state_attr('sensor.adsb_military_aircraft_details', 'summary') }}
 
-    {% set military = state_attr('sensor.adsb_military_details', 'military_1') %}
+    {% set military = state_attr('sensor.adsb_military_aircraft_details', 'military_1') %}
     {% if military %}
     **Aircraft:** {{ military.tail }}
     **Distance:** {{ military.distance_display }}
