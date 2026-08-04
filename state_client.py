@@ -62,7 +62,14 @@ class StateClient:
                 return state
 
         state = await self._async_fetch(normalized)
-        self._cache[normalized] = (state, dt_util.utcnow())
+        now = dt_util.utcnow()
+        # Drop expired entries so the cache can't grow without bound
+        self._cache = {
+            key: value
+            for key, value in self._cache.items()
+            if now - value[1] < _CACHE_TTL
+        }
+        self._cache[normalized] = (state, now)
         return state
 
     async def _async_fetch(self, hex_code: str) -> AircraftState:

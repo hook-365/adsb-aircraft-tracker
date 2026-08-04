@@ -189,7 +189,8 @@ def format_callsign_for_tts(
         "UAL123"  -> "United 1 2 3"
         "DAL45"   -> "Delta 4 5"
         "N172SP"  -> "N172SP"  (GA tail, leave as-is)
-        "REACH99" -> "REACH 9 9" (military, no airline match)
+        "REACH99" -> "REACH99" (word callsigns pass through, operator
+                     prepended if known — only 2-4 letter prefixes split)
     """
     if not callsign:
         return "an unidentified aircraft"

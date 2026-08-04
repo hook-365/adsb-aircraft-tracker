@@ -622,12 +622,8 @@ def _detect_military(
     coordinator: ADSBDataUpdateCoordinator,
     aircraft_list: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Detect military aircraft using the binary sensor's logic."""
-    from .binary_sensor import ADSBMilitaryAircraftSensor
-
-    temp_sensor = ADSBMilitaryAircraftSensor(coordinator, coordinator.config_entry)
-    temp_sensor._military_database = getattr(coordinator, "_military_database", None) or {}
-    return temp_sensor._detect_military_aircraft(aircraft_list)
+    """Detect military aircraft using the coordinator's database."""
+    return coordinator.detect_military_aircraft(aircraft_list)
 
 
 def _filter_aircraft_by_type(
