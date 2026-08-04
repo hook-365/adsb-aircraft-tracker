@@ -392,13 +392,14 @@ tap_action:
 Minimal aircraft count display:
 
 ```yaml
-type: custom:mushroom-entity-card
+type: custom:mushroom-template-card
 entity: sensor.adsb_all_aircraft
-name: Aircraft Nearby
+primary: Aircraft Nearby
+secondary: >-
+  {{ states('sensor.adsb_all_aircraft') }} ·
+  {{ state_attr('sensor.adsb_closest_aircraft', 'distance_display') }} closest
 icon: mdi:airplane
 icon_color: blue
-secondary_info: |
-  {{ state_attr('sensor.adsb_closest_aircraft', 'distance_display') }} closest
 tap_action:
   action: url
   url_path: http://192.168.1.100:8080
@@ -409,18 +410,17 @@ tap_action:
 Monitor the military aircraft database health:
 
 ```yaml
-type: custom:mushroom-entity-card
+type: custom:mushroom-template-card
 entity: sensor.adsb_military_database_status
-name: Military Database
-icon: mdi:database-check
-icon_color: |
-  {% if state_attr('sensor.adsb_military_database_status', 'database_loaded') %}
-    green
-  {% else %}
-    red
-  {% endif %}
-secondary_info: |
+primary: Military Database
+secondary: >-
+  {{ states('sensor.adsb_military_database_status') }} aircraft ·
   {{ state_attr('sensor.adsb_military_database_status', 'last_updated_friendly') }}
+icon: mdi:database-check
+icon_color: >-
+  {{ 'green' if state_attr('sensor.adsb_military_database_status', 'database_loaded') else 'red' }}
+tap_action:
+  action: more-info
 ```
 
 ## Built-in Card Examples
