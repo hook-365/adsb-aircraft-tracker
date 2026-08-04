@@ -14,5 +14,3 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "integration"
-          # Custom repo — domain isn't registered in home-assistant/brands
-          ignore: "brands"
