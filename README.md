@@ -11,7 +11,7 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 🛩️ **Aircraft Tracking**
 - Real-time aircraft monitoring within configurable distance
 - Detailed aircraft information (tail number, flight, altitude, speed, type)
-- Top 3 closest aircraft with comprehensive details
+- Top 5 closest aircraft with comprehensive details
 - Aircraft type database with 85,000+ aircraft models
 
 📱 **Smart Notifications**
@@ -177,10 +177,11 @@ The integration creates the following entities:
 - **Attributes**: Complete details of the nearest aircraft (distance, altitude, speed, heading, type, operator, etc.)
 - **Use**: Track the aircraft closest to your location
 
-#### `sensor.adsb_nearest_3_aircraft`
-- **Value**: Summary count (e.g., "3 aircraft detected")
-- **Attributes**: `aircraft_1`, `aircraft_2`, `aircraft_3` with full details for each
-- **Use**: Display top 3 closest aircraft in cards/dashboards
+#### `sensor.adsb_nearest_5_aircraft`
+- **Value**: Summary count (e.g., "5 aircraft detected")
+- **Attributes**: `aircraft_1` through `aircraft_5` with full details for each
+- **Use**: Display the closest aircraft in cards/dashboards
+- *Note: installs that predate the top-5 expansion keep their original entity id (e.g. `sensor.adsb_nearest_5_aircraft`) — Home Assistant never renames existing entities*
 
 #### `sensor.adsb_military_details`
 - **Value**: Military detection summary (e.g., "Military aircraft detected: 2 aircraft")
@@ -216,6 +217,12 @@ data:
 
 # Install voice assistant sentence triggers
 service: adsb_aircraft_tracker.install_sentences
+
+# Force a fresh military database download
+service: adsb_aircraft_tracker.load_military_database
+
+# Update the aircraft types database from tar1090-db
+service: adsb_aircraft_tracker.update_aircraft_types_database
 ```
 
 ## Notifications
@@ -228,7 +235,7 @@ The integration automatically sends mobile notifications for:
 - **Action**: Tap to open ADSB tracker
 
 ### Low Aircraft
-- **Trigger**: Aircraft within 1.5 miles and below 3000ft altitude
+- **Trigger**: Aircraft within 2 miles and below 3,000 ft (both thresholds configurable in options)
 - **Message**: Aircraft type, altitude, distance  
 - **Action**: Tap to open ADSB tracker
 
@@ -253,6 +260,7 @@ automation:
         data:
           title: "Military Aircraft Detected"
           message: "{{ state_attr('sensor.adsb_military_details', 'summary') }}"
+```
 
 ### Close Aircraft TTS
 ```yaml
@@ -296,9 +304,9 @@ cards:
       url_path: http://192.168.1.100:8080
   - type: markdown
     content: >
-      {% set a1 = state_attr('sensor.adsb_nearest_3_aircraft', 'aircraft_1') %}
-      {% set a2 = state_attr('sensor.adsb_nearest_3_aircraft', 'aircraft_2') %}
-      {% set a3 = state_attr('sensor.adsb_nearest_3_aircraft', 'aircraft_3') %}
+      {% set a1 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_1') %}
+      {% set a2 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_2') %}
+      {% set a3 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_3') %}
 
       ## Aircraft Details
 
@@ -463,9 +471,9 @@ cards:
         suffix: kts
   - type: markdown
     content: |
-      {% set a1 = state_attr('sensor.adsb_nearest_3_aircraft', 'aircraft_1') %}
-      {% set a2 = state_attr('sensor.adsb_nearest_3_aircraft', 'aircraft_2') %}
-      {% set a3 = state_attr('sensor.adsb_nearest_3_aircraft', 'aircraft_3') %}
+      {% set a1 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_1') %}
+      {% set a2 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_2') %}
+      {% set a3 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_3') %}
 
       ### Top 3 Aircraft
 
@@ -520,22 +528,6 @@ secondary_info: |
   {{ distance }} • {{ altitude }}ft
 ```
 
-### Statistics Card
-
-Show aircraft statistics over time:
-
-```yaml
-type: statistics-graph
-entities:
-  - sensor.adsb_all_aircraft
-title: Aircraft Count History
-period: hour
-stat_types:
-  - mean
-  - min
-  - max
-```
-
 ### Military Aircraft Alert Card
 
 Built-in conditional card for military alerts:
@@ -570,6 +562,7 @@ type: horizontal-stack
 cards:
   - type: gauge
     entity: sensor.adsb_all_aircraft
+    attribute: total_aircraft
     name: Aircraft Count
     min: 0
     max: 50
@@ -611,7 +604,8 @@ cards:
 
 ### Database Issues
 - Check `sensor.adsb_military_database_status` for database health
-- Use the `refresh_data` service to manually update aircraft data
+- Use the `load_military_database` service to force a fresh database download
+- The database also refreshes automatically every 24 hours
 
 ## Credits
 

@@ -11,7 +11,7 @@ Thank you for your interest in contributing to the ADSB Aircraft Tracker Home As
    ```
 
 2. **Development Environment**
-   - Home Assistant 2023.1 or newer
+   - Home Assistant 2023.7 or newer
    - Python 3.11+
    - ADSB feeder (dump1090/tar1090) for testing
 
@@ -42,8 +42,9 @@ Thank you for your interest in contributing to the ADSB Aircraft Tracker Home As
    git checkout -b feature/my-new-feature
    ```
 3. **Make your changes** with clear, focused commits
-4. **Test thoroughly** with your Home Assistant setup
-5. **Update documentation** if needed (README.md, CHANGELOG.md)
+4. **Test thoroughly** with your Home Assistant setup — pull requests
+   automatically run Hassfest and HACS validation, and both must pass
+5. **Update documentation** if needed (README.md, release notes)
 6. **Submit a Pull Request** with:
    - Clear description of changes
    - Why the change is needed
