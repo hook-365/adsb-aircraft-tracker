@@ -293,7 +293,7 @@ cards:
     icon_color: orange
     tap_action:
       action: url
-      url_path: http://192.168.1.200:8085
+      url_path: http://192.168.1.100:8080
   - type: markdown
     content: >
       {% set a1 = state_attr('sensor.adsb_nearest_3_aircraft', 'aircraft_1') %}
@@ -346,7 +346,7 @@ cards:
         icon: mdi:radar
         tap_action:
           action: url
-          url_path: http://192.168.1.200:8085
+          url_path: http://192.168.1.100:8080
 ```
 
 ### Military Aircraft Alert Card
@@ -393,7 +393,7 @@ secondary_info: |
   {{ state_attr('sensor.adsb_closest_aircraft', 'distance_display') }} closest
 tap_action:
   action: url
-  url_path: http://192.168.1.200:8085
+  url_path: http://192.168.1.100:8080
 ```
 
 ### Database Status Monitoring
