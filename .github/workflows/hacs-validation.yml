@@ -14,3 +14,8 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "integration"
+          # The brands check requires a merged home-assistant/brands PR (an
+          # in-repo brand/ dir is NOT accepted by hacs/action). Remove this
+          # ignore once that PR merges — required before hacs/default
+          # submission, which mandates a clean run with no ignores.
+          ignore: "brands"
