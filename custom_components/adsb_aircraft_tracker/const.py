@@ -4,7 +4,7 @@ from datetime import timedelta
 DOMAIN = "adsb_aircraft_tracker"
 
 # Keep in sync with manifest.json
-INTEGRATION_VERSION = "1.4.0"
+INTEGRATION_VERSION = "1.4.1"
 
 # tar1090-db (Mictronics) military aircraft database
 MILITARY_DB_URL = (

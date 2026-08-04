@@ -73,5 +73,5 @@ logo.png
 
 # Claude Code instructions (local only)
 CLAUDE.md
-# Brand icon for HACS is tracked (exception to the icon.png ignore above)
-!brand/icon.png
+# Brand icon inside the component is tracked (exception to the icon.png ignore above)
+!custom_components/adsb_aircraft_tracker/brand/icon.png
