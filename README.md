@@ -303,7 +303,7 @@ cards:
       action: url
       url_path: http://192.168.1.100:8080
   - type: markdown
-    content: >
+    content: |
       {% set a1 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_1') %}
       {% set a2 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_2') %}
       {% set a3 = state_attr('sensor.adsb_nearest_5_aircraft', 'aircraft_3') %}
