@@ -108,7 +108,7 @@ That's it — the custom sentences are installed and the intent handlers registe
 #### Military Status — `ADSBMilitaryStatus`
 > "Any military planes nearby?" · "Are there any military aircraft?" · "Military aircraft status"
 
-**Response:** *"I'm detecting 2 military aircraft. The closest is a Boeing KC 135 Stratotanker, 15 miles away, at 24,000 feet, heading northeast."*
+**Response:** *"I'm detecting 2 military aircraft. The closest is a Boeing K C 135 Stratotanker, 15 miles away, at 24,000 feet, heading northeast."*
 
 #### Aircraft Count — `ADSBAircraftCount`
 > "How many planes?" · "How many aircraft are you tracking?" · "How many planes are out there?"
@@ -143,11 +143,11 @@ All voice responses are formatted for natural text-to-speech pronunciation:
 | Raw Data | Spoken As | Why |
 |----------|-----------|-----|
 | `BOEING 737-800` | *Boeing 738* | Title case, colloquial name, no hyphen |
-| `BOEING 777-300ER` | *Boeing triple seven ER* | Colloquial spoken name |
+| `BOEING 777-300ER` | *Boeing triple seven E R* | Colloquial spoken name, letters spelled out |
 | `EMBRAER ERJ-190` | *Embraer E190* | Colloquial designation |
 | `UAL123` | *United 1 2 3* | Airline code expanded, digits spelled out |
 | `DAL45` | *Delta 4 5* | Same pattern |
-| `Piper PA-28 Cherokee` | *Piper PA 28 Cherokee* | Hyphen removed (prevents TTS saying "minus") |
+| `Piper PA-28 Cherokee` | *Piper P A 28 Cherokee* | Hyphen removed, letter groups spelled out (no "minus", no "pah") |
 | heading `225°` | *heading southwest* | 8-point cardinal compass |
 | climbing `+1500 fpm` | *climbing through 12,000 feet* | Altitude phrased with vertical context |
 | speed `450 kts` | *cruising at 450 knots* | "cruising" for faster aircraft |

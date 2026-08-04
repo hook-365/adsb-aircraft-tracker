@@ -121,12 +121,21 @@ def enrich_military_description(aircraft: dict[str, Any]) -> str | None:
     return original
 
 
+# Letter tokens spoken as real words — never spelled letter-by-letter
+_SPOKEN_AS_WORDS = {"MAX"}
+
+# Roman numerals in model names → spoken numbers ("Citation II" → "Citation 2";
+# spelling them out would produce "I I", and TTS reads "II" as "ee")
+_ROMAN_NUMERALS = {"II": "2", "III": "3", "IV": "4"}
+
+
 def format_description_for_tts(description: str | None) -> str | None:
     """Convert aircraft descriptions to TTS-friendly text.
 
-    Handles ALL CAPS → Title Case, colloquial model names, and
-    strips hyphens from numeric model designators so TTS doesn't
-    say "minus".
+    Handles ALL CAPS → Title Case, colloquial model names, strips
+    hyphens from numeric model designators so TTS doesn't say
+    "minus", and spells out short letter groups so TTS doesn't
+    invent words ("PA" → "P A", not "pah"; "ER" → "E R", not "err").
 
     Examples:
         "BOEING 737-800"          -> "Boeing 738"
@@ -134,8 +143,9 @@ def format_description_for_tts(description: str | None) -> str | None:
         "EMBRAER ERJ-190"         -> "Embraer E190"
         "CESSNA 172 SKYHAWK"      -> "Cessna 172 Skyhawk"
         "AIRBUS A320-214"         -> "Airbus A320"
-        "Boeing 777-300ER"        -> "Boeing triple seven ER"
-        "Piper PA-28 Cherokee"    -> "Piper PA 28 Cherokee"
+        "Boeing 777-300ER"        -> "Boeing triple seven E R"
+        "Piper PA-28 Cherokee"    -> "Piper P A 28 Cherokee"
+        "Cessna Citation II"      -> "Cessna Citation 2"
     """
     if not description:
         return description
@@ -176,6 +186,25 @@ def format_description_for_tts(description: str | None) -> str | None:
     # Third pass: replace ALL remaining hyphens with spaces so TTS never
     # says "minus". Covers "PA-28", "C-130", "F-16", "2-engine", etc.
     text = text.replace("-", " ")
+
+    # Fourth pass: spell out short all-letter tokens so TTS says
+    # "P A 28" / "triple seven E R" instead of "pah" / "err".
+    # MAX stays a word; roman numerals become numbers; mixed
+    # alphanumerics (A320, E190, 135R/T) are left alone.
+    tokens = []
+    for token in text.split():
+        if token in _ROMAN_NUMERALS:
+            tokens.append(_ROMAN_NUMERALS[token])
+        elif (
+            token.isalpha()
+            and token.isupper()
+            and 2 <= len(token) <= 3
+            and token not in _SPOKEN_AS_WORDS
+        ):
+            tokens.append(" ".join(token))
+        else:
+            tokens.append(token)
+    text = " ".join(tokens)
 
     return text
 
