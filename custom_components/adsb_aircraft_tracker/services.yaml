@@ -27,5 +27,3 @@ install_sentences:
     Write the custom sentences YAML file to config/custom_sentences/en/ so
     Home Assistant Assist can recognize aircraft queries like "what plane is that?"
     Restart Home Assistant after running this service for sentences to take effect.
-  response:
-    optional: true
