@@ -21,6 +21,7 @@ from .coordinator import ADSBDataUpdateCoordinator
 from .notify import ADSBNotificationManager
 from .database_updater import async_setup_database_services
 from .route_client import RouteClient
+from .state_client import StateClient
 from .intent import async_setup_intents
 
 _LOGGER = logging.getLogger(__name__)
@@ -48,13 +49,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create notification manager and route client
     notification_manager = ADSBNotificationManager(hass, coordinator, entry)
     route_client = RouteClient(hass)
+    state_client = StateClient(hass)
 
-    # Store coordinator, notification manager, and route client in hass data
+    # Store coordinator, notification manager, route client, state client in hass data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "notification_manager": notification_manager,
         "route_client": route_client,
+        "state_client": state_client,
     }
     
     # Setup platforms
@@ -268,15 +271,35 @@ intents:
   ADSBAircraftByType:
     data:
       - sentences:
-          - "are there any {type} nearby"
-          - "any {type} overhead"
-          - "do you see any {type}"
-          - "are there {type} around"
-          - "any {type} flying"
-          - "can you see any {type}"
-          - "are there any {type}"
+          - "are there any {type} aircraft nearby"
+          - "are there any {type} planes nearby"
+          - "any {type} aircraft overhead"
+          - "any {type} planes overhead"
+          - "do you see any {type} aircraft"
+          - "do you see any {type} planes"
+          - "are there {type} aircraft around"
+          - "are there {type} planes around"
+          - "any {type} aircraft flying"
+          - "any {type} planes flying"
+          - "can you see any {type} aircraft"
+          - "can you see any {type} planes"
+  ADSBAircraftSuperlative:
+    data:
+      - sentences:
+          - "what is the {query} aircraft"
+          - "what is the {query} plane"
+          - "what's the {query} plane"
+          - "what's the {query} aircraft"
+          - "which plane is the {query}"
+          - "which aircraft is the {query}"
+          - "what plane is {query}"
+          - "what aircraft is {query}"
+          - "show me the {query} aircraft"
+          - "find the {query} plane"
 lists:
   type:
+    wildcard: true
+  query:
     wildcard: true
 """
 

@@ -21,7 +21,7 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 - Customizable external ADSB URL links
 
 🗣️ **Voice / Assist Support**
-- 6 voice intents with 62 sentence variations
+- 7 voice intents with 77 sentence variations
 - TTS-friendly output: colloquial model names, airline code expansion, no mispronounced hyphens
 - Flight route lookup (origin/destination) via [adsb.im](https://adsb.im)
 - Filter by type: helicopters, jets, turboprops, military
@@ -121,11 +121,20 @@ That's it — the custom sentences are installed and the intent handlers registe
 **Response:** *"The closest aircraft, United 1 2 3, is flying from Chicago to Denver, about 4 miles away, at 32,000 feet."*
 
 #### Filter by Type — `ADSBAircraftByType`
-> "Any helicopters nearby?" · "Do you see any jets?" · "Are there any props flying?"
+> "Any helicopter aircraft nearby?" · "Do you see any jet planes?" · "Any prop planes flying?"
+
+*Sentences require an "aircraft"/"planes" anchor word after the type (e.g. "military planes", "jet aircraft") — bare wildcards like "any helicopters nearby" over-matched unrelated queries in hassil.*
 
 Supported types: `helicopters`, `choppers`, `jets`, `airliners`, `turboprops`, `props`, `cessna`, `military`
 
 **Response:** *"I can see 3 helicopters nearby. The closest is 2 miles away, at 1,500 feet."*
+
+#### Superlative Queries — `ADSBAircraftSuperlative`
+> "What is the fastest aircraft?" · "What plane is the highest?" · "Find the closest plane" · "Which aircraft is the slowest?"
+
+Supported queries: `fastest`, `quickest`, `speediest`, `slowest`, `highest`, `lowest`, `closest`, `nearest`, `farthest`, `furthest`
+
+**Response:** *"The fastest aircraft is United 1 2 3, a Boeing 738, cruising at 520 knots, about 8 miles away, at 36,000 feet, heading southwest."*
 
 ### TTS-Friendly Output
 
@@ -145,7 +154,7 @@ All voice responses are formatted for natural text-to-speech pronunciation:
 
 ### How It Works
 
-- 6 intent handlers are registered with Home Assistant's Assist pipeline (hassil)
+- 7 intent handlers are registered with Home Assistant's Assist pipeline (hassil)
 - Voice queries go directly through intent recognition — the LLM conversation agent is **not** involved
 - Flight route data (origin/destination) is fetched from [adsb.im](https://adsb.im) and cached for 4 hours
 - Aircraft type filtering uses ICAO engine type, category, and description keyword matching

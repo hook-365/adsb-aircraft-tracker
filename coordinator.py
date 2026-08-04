@@ -329,7 +329,10 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
             "emergency": plane.get("emergency", "none"),
             "nav_altitude": plane.get("nav_altitude_mcp"),
             "nav_heading": plane.get("nav_heading"),
-            
+            "nav_qnh": plane.get("nav_qnh"),
+            "nac_p": plane.get("nac_p"),
+            "adsb_version": plane.get("version"),
+
             # Technical
             "icao_category": plane.get("category"),  # Original ICAO category
             "messages": plane.get("messages", 0),
