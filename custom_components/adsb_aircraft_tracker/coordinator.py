@@ -18,8 +18,10 @@ from .const import (
     DOMAIN,
     CONF_ADSB_HOST,
     CONF_ADSB_PORT,
+    CONF_ADSB_PATH,
     CONF_DISTANCE_LIMIT,
     DEFAULT_ADSB_PORT,
+    DEFAULT_ADSB_PATH,
     DEFAULT_DISTANCE_LIMIT,
     MILITARY_DB_URL,
 )
@@ -44,8 +46,10 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         self.adsb_port = config.get(CONF_ADSB_PORT, DEFAULT_ADSB_PORT)
         self.distance_limit = config.get(CONF_DISTANCE_LIMIT, DEFAULT_DISTANCE_LIMIT)
 
-        # Build ADSB URL
-        self.adsb_url = f"http://{self.adsb_host}:{self.adsb_port}/data/aircraft.json"
+        # Build ADSB URL (path is discovered by the config flow; entries
+        # created before path discovery existed use the tar1090 default)
+        adsb_path = config.get(CONF_ADSB_PATH) or DEFAULT_ADSB_PATH
+        self.adsb_url = f"http://{self.adsb_host}:{self.adsb_port}{adsb_path}"
 
         # Load aircraft types database (will be loaded async after init)
         self.aircraft_types_db = {}
@@ -240,7 +244,8 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
                         raise UpdateFailed(
                             f"Error fetching ADSB data: HTTP {response.status}"
                         )
-                    data = await response.json()
+                    # content_type=None: adapters often serve JSON as text/plain
+                    data = await response.json(content_type=None)
 
         except UpdateFailed:
             raise

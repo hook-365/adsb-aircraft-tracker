@@ -18,6 +18,7 @@ from .const import (
     DOMAIN,
     CONF_ADSB_HOST,
     CONF_ADSB_PORT,
+    CONF_ADSB_PATH,
     CONF_UPDATE_INTERVAL,
     CONF_DISTANCE_LIMIT,
     CONF_NOTIFICATION_DEVICE,
@@ -28,6 +29,7 @@ from .const import (
     CONF_CLOSE_AIRCRAFT_ALTITUDE,
     CONF_EMERGENCY_NOTIFICATIONS,
     DEFAULT_ADSB_PORT,
+    ADSB_PATH_CANDIDATES,
     DEFAULT_UPDATE_INTERVAL,
     DEFAULT_DISTANCE_LIMIT,
     DEFAULT_MILITARY_NOTIFICATIONS,
@@ -52,41 +54,78 @@ def get_user_data_schema(hass=None):
         {
             vol.Required(CONF_ADSB_HOST): str,
             vol.Optional(CONF_ADSB_PORT, default=DEFAULT_ADSB_PORT): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+            vol.Optional(CONF_ADSB_PATH, default=""): str,
             vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=5, max=300)),
             vol.Optional(CONF_DISTANCE_LIMIT, default=DEFAULT_DISTANCE_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=0, max=max_distance)),
         }
     )
 
 
+def _normalize_path(path: str) -> str:
+    """Return a data path with exactly one leading slash ("" stays "")."""
+    path = path.strip()
+    if not path:
+        return ""
+    return "/" + path.lstrip("/")
+
+
+async def _probe_path(
+    session: aiohttp.ClientSession, host: str, port: int, path: str
+) -> dict[str, Any]:
+    """Fetch one candidate URL and return its parsed aircraft JSON.
+
+    Raises InvalidHost for a non-200 response and InvalidADSBData for a 200
+    that isn't aircraft JSON; connection-level errors propagate unchanged.
+    """
+    url = f"http://{host}:{port}{path}"
+    async with asyncio.timeout(10):
+        async with session.get(url) as response:
+            if response.status != 200:
+                raise InvalidHost(f"HTTP {response.status} from {url}")
+            # content_type=None: adapters often serve JSON as text/plain
+            try:
+                json_data = await response.json(content_type=None)
+            except ValueError as err:
+                raise InvalidADSBData(f"Non-JSON response from {url}") from err
+
+    if not isinstance(json_data, dict) or not isinstance(json_data.get("aircraft"), list):
+        raise InvalidADSBData(f"No aircraft list in response from {url}")
+    return json_data
+
+
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect."""
+    """Validate the user input allows us to connect.
+
+    With an explicit data path only that path is tried; left blank, the
+    known feeder paths (ADSB_PATH_CANDIDATES) are probed in order and the
+    first one serving aircraft JSON wins.
+    """
 
     host = data[CONF_ADSB_HOST].strip()
     port = data[CONF_ADSB_PORT]
-    url = f"http://{host}:{port}/data/aircraft.json"
+    explicit_path = _normalize_path(data.get(CONF_ADSB_PATH, ""))
+    candidates = (explicit_path,) if explicit_path else ADSB_PATH_CANDIDATES
 
     session = async_get_clientsession(hass)
+    last_error: InvalidHost | InvalidADSBData | None = None
 
     try:
-        async with asyncio.timeout(10):
-            async with session.get(url) as response:
-                if response.status != 200:
-                    raise InvalidHost(f"HTTP {response.status}")
+        for path in candidates:
+            try:
+                json_data = await _probe_path(session, host, port, path)
+            except (InvalidHost, InvalidADSBData) as err:
+                _LOGGER.debug("ADSB probe failed: %s", err)
+                # Prefer reporting "reached a server but bad data" over a 404
+                if last_error is None or isinstance(err, InvalidADSBData):
+                    last_error = err
+                continue
 
-                json_data = await response.json()
-
-                # Validate required structure
-                if "aircraft" not in json_data:
-                    raise InvalidADSBData("Missing aircraft data in response")
-
-                if not isinstance(json_data["aircraft"], list):
-                    raise InvalidADSBData("Aircraft data is not a list")
-
-                return {
-                    "title": f"ADSB Tracker ({host}:{port})",
-                    "aircraft_count": len(json_data["aircraft"]),
-                    "last_update": json_data.get("now"),
-                }
+            return {
+                "title": f"ADSB Tracker ({host}:{port})",
+                "path": path,
+                "aircraft_count": len(json_data["aircraft"]),
+                "last_update": json_data.get("now"),
+            }
 
     except asyncio.TimeoutError:
         raise ConnectionTimeout(
@@ -105,11 +144,11 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         raise CannotConnect(f"Network error connecting to {host}:{port}: {err}")
     except aiohttp.ClientError as err:
         raise CannotConnect(f"Network error connecting to {host}:{port}: {err}")
-    except (InvalidHost, InvalidADSBData):
-        raise
     except Exception as err:
         _LOGGER.exception("Unexpected error validating ADSB connection")
         raise CannotConnect(f"Unexpected error: {err}")
+
+    raise last_error
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -141,8 +180,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
 
-                # Store the basic config and validation info
-                self._user_input = user_input
+                # Store the basic config and validation info, pinning the
+                # data path that answered so the coordinator doesn't re-probe
+                self._user_input = {**user_input, CONF_ADSB_PATH: info["path"]}
                 self._title = info["title"]
                 self._validation_info = info
                 return await self.async_step_summary()
@@ -192,7 +232,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         summary_text += f"🛜 **Found:** {aircraft_count} aircraft currently tracked\n"
         if last_update:
             summary_text += f"🕐 **Last Update:** {last_update}\n"
-        summary_text += f"📡 **Source:** {self._user_input[CONF_ADSB_HOST]}:{self._user_input[CONF_ADSB_PORT]}\n\n"
+        summary_text += f"📡 **Source:** {self._user_input[CONF_ADSB_HOST]}:{self._user_input[CONF_ADSB_PORT]}{self._user_input[CONF_ADSB_PATH]}\n\n"
         summary_text += "You can set up notifications and alerts now, or configure them later in the integration options."
 
         schema = vol.Schema({

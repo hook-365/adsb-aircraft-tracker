@@ -7,12 +7,14 @@
         "data": {
           "adsb_host": "ADSB Feeder IP Address",
           "adsb_port": "Port Number",
+          "adsb_path": "Data Path (optional)",
           "update_interval": "Update Frequency (seconds)",
           "distance_limit": "Aircraft Range Filter (miles/km)"
         },
         "data_description": {
           "adsb_host": "IP address of your ADSB feeder (e.g., 192.168.1.100). Find this in your feeder's web interface or network settings.",
           "adsb_port": "Port number where your feeder serves aircraft data. Default is 8085 for tar1090. Check your feeder's configuration if unsure.",
+          "adsb_path": "Leave blank to auto-detect. Standard locations are tried in order: /data/aircraft.json (tar1090/readsb), /tar1090/data/aircraft.json, /skyaware/data/aircraft.json, /dump1090-fa/data/aircraft.json, /dump1090/data/aircraft.json, /aircraft.json, then the root /. Enter a path only if your feeder or adapter serves aircraft JSON somewhere else.",
           "update_interval": "How often to refresh aircraft data. Recommended: 10 seconds (range: 5-300). Lower values = more real-time data but higher system load.",
           "distance_limit": "Maximum distance to track aircraft. Units (miles/kilometers) depend on your Home Assistant unit system. Set to 0 for unlimited range (tracks all aircraft your feeder can see). Typical range: 50-200 miles or 80-320 km depending on your antenna setup."
         }
@@ -48,8 +50,8 @@
       "timeout": "Connection timed out. The host may be unreachable from Home Assistant. Verify the IP address is correct and try opening http://YOUR_IP:PORT/data/aircraft.json in your browser.",
       "cannot_resolve": "Could not resolve hostname. Check for typos in the address.",
       "cannot_connect": "Could not connect to ADSB source. Check that the IP address and port are correct and that your feeder is reachable from Home Assistant.",
-      "invalid_host": "Connected to the host but received an unexpected response. This may not be an ADSB feeder, or the port may be serving a different application.",
-      "invalid_adsb_data": "Connected successfully but the response doesn't contain valid ADSB data. Ensure your feeder is dump1090/tar1090 compatible.",
+      "invalid_host": "Connected to the host, but none of the data paths returned aircraft data (HTTP errors such as 404). If your feeder or adapter serves aircraft JSON at a non-standard path, enter it in the Data Path field.",
+      "invalid_adsb_data": "Connected successfully, but the response doesn't contain ADSB aircraft data (expected JSON with an \"aircraft\" list). Ensure your feeder is dump1090/tar1090/readsb compatible, or set the Data Path to where it serves aircraft JSON.",
       "unknown": "Unexpected error occurred."
     },
     "abort": {

@@ -13,6 +13,7 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 - Detailed aircraft information (tail number, flight, altitude, speed, type)
 - Top 5 closest aircraft with comprehensive details
 - Aircraft type database with 85,000+ aircraft models
+- Works with any readsb-style `aircraft.json` source (tar1090, readsb, dump1090-fa/SkyAware, or bridges from other receivers); the data path is auto-detected
 
 📱 **Smart Notifications**
 - Mobile app notifications for specific aircraft types
@@ -26,6 +27,7 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 - Flight route lookup (origin/destination) via [adsb.im](https://adsb.im)
 - Filter by type: helicopters, jets, turboprops, military
 - Works with Home Assistant Assist and voice pipelines
+- Exposed as LLM tools for AI conversation agents (Home Assistant 2026.8+)
 
 🔧 **Advanced Features**
 - Runtime configuration changes (no restart required)
@@ -69,8 +71,11 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 1. **ADSB Host**: IP address of your dump1090/tar1090 feeder (e.g., `192.168.1.100`)
 2. **ADSB Port**: Port number (default: `8085`)
-3. **Update Interval**: How often to fetch data (default: `10` seconds)
-4. **Distance Limit**: Aircraft range in miles (`0` = unlimited)
+3. **Data Path** (optional): Leave blank to auto-detect. Setup tries `/data/aircraft.json` (tar1090/readsb), `/tar1090/data/aircraft.json`, `/skyaware/data/aircraft.json`, `/dump1090-fa/data/aircraft.json`, `/dump1090/data/aircraft.json`, `/aircraft.json`, then `/`, and keeps the first one that returns aircraft JSON. Set it explicitly for adapters that serve data somewhere else.
+4. **Update Interval**: How often to fetch data (default: `10` seconds)
+5. **Distance Limit**: Aircraft range in miles (`0` = unlimited)
+
+Any source that returns readsb-style JSON (a top-level `"aircraft"` list with `hex`, `lat`/`lon`, `alt_baro`, `gs`, `track`, `flight`) works, including bridges from other services. The content type doesn't matter; `text/plain` is accepted.
 
 ### Advanced Options
 
@@ -155,7 +160,8 @@ All voice responses are formatted for natural text-to-speech pronunciation:
 ### How It Works
 
 - 7 intent handlers are registered with Home Assistant's Assist pipeline (hassil)
-- Voice queries go directly through intent recognition — the LLM conversation agent is **not** involved
+- Voice queries that match a sentence go directly through intent recognition, without the LLM conversation agent
+- With an LLM conversation agent (Home Assistant 2026.8+), the same intents are also offered to the model as Assist API tools, with descriptions written to help it pick the right one. Answers are identical to the sentence path. HA stopped exposing intents to LLMs automatically in 2026.8, so this needs version 1.5.0 or newer of this integration
 - Flight route data (origin/destination) is fetched from [adsb.im](https://adsb.im) and cached for 4 hours
 - Aircraft type filtering uses ICAO engine type, category, and description keyword matching
 - Military detection uses the tar1090-db verified database (same as notification system)
@@ -596,7 +602,8 @@ cards:
 
 ### No Aircraft Data
 - Verify your ADSB feeder is accessible at the configured IP/port
-- Test the URL manually: `http://YOUR_IP:8085/data/aircraft.json`
+- Test the URL manually: `http://YOUR_IP:8085/data/aircraft.json` (or wherever your source serves its JSON; see **Data Path** above)
+- "None of the data paths returned aircraft data" means the host answered but not at any standard path. Enter your source's path in the **Data Path** field
 - Check Home Assistant logs for connection errors
 
 ### Notifications Not Working

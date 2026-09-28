@@ -16,6 +16,7 @@ MILITARY_DB_REFRESH_INTERVAL = timedelta(hours=24)
 # Configuration keys
 CONF_ADSB_HOST = "adsb_host"
 CONF_ADSB_PORT = "adsb_port"
+CONF_ADSB_PATH = "adsb_path"
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_DISTANCE_LIMIT = "distance_limit"
 CONF_NOTIFICATION_DEVICE = "notification_device"
@@ -28,6 +29,20 @@ CONF_EMERGENCY_NOTIFICATIONS = "emergency_notifications"
 
 # Default values
 DEFAULT_ADSB_PORT = 8085
+DEFAULT_ADSB_PATH = "/data/aircraft.json"
+
+# Paths probed in order when the user leaves the data path blank. Covers
+# readsb/tar1090 (bare and under a subpath), FlightAware SkyAware/dump1090-fa,
+# and adapters that serve aircraft.json directly or at the root.
+ADSB_PATH_CANDIDATES = (
+    DEFAULT_ADSB_PATH,
+    "/tar1090/data/aircraft.json",
+    "/skyaware/data/aircraft.json",
+    "/dump1090-fa/data/aircraft.json",
+    "/dump1090/data/aircraft.json",
+    "/aircraft.json",
+    "/",
+)
 DEFAULT_UPDATE_INTERVAL = 10
 DEFAULT_DISTANCE_LIMIT = 0
 DEFAULT_MILITARY_NOTIFICATIONS = True
