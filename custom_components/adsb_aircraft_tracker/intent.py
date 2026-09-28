@@ -615,7 +615,10 @@ async def _fetch_route_for_aircraft(
     callsign = aircraft.get("flight")
     if not callsign or not route_client:
         return RouteInfo(callsign=callsign or "", valid=False)
-    return await route_client.async_get_route(callsign)
+    route = await route_client.async_get_route(callsign)
+    return route.for_position(
+        aircraft.get("latitude"), aircraft.get("longitude"), aircraft.get("heading")
+    )
 
 
 def _detect_military(

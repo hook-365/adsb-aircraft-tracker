@@ -86,7 +86,7 @@ class ADSBClosestAircraftSensor(ADSBSensorBase):
         # Return the best available identifier
         if aircraft.get("flight"):
             return aircraft["flight"]
-        elif aircraft.get("tail"):
+        elif aircraft.get("tail") and aircraft["tail"] != "Unknown":
             return aircraft["tail"]
         else:
             return aircraft.get("hex", "Unknown")
@@ -185,6 +185,10 @@ class ADSBTopAircraftSensor(ADSBSensorBase):
                 "vertical_rate_fpm": aircraft.get("vertical_rate_fpm", 0),
                 "latitude": aircraft.get("latitude"),
                 "longitude": aircraft.get("longitude"),
+                "route_origin": aircraft.get("route_origin"),
+                "route_origin_name": aircraft.get("route_origin_name"),
+                "route_destination": aircraft.get("route_destination"),
+                "route_destination_name": aircraft.get("route_destination_name"),
             }
 
         return attributes
@@ -328,6 +332,10 @@ class ADSBAllAircraftSensor(ADSBSensorBase):
                 "vertical_rate_fpm": aircraft.get("vertical_rate_fpm", 0),
                 "latitude": aircraft.get("latitude"),
                 "longitude": aircraft.get("longitude"),
+                "route_origin": aircraft.get("route_origin"),
+                "route_origin_name": aircraft.get("route_origin_name"),
+                "route_destination": aircraft.get("route_destination"),
+                "route_destination_name": aircraft.get("route_destination_name"),
             }
             attributes[f"aircraft_{i}"] = aircraft_info
             

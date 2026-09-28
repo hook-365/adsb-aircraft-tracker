@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import asyncio
+import bisect
 import json
 import logging
 import os
+from array import array
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -14,6 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .geo import distance_and_bearing
 from .const import (
     DOMAIN,
     CONF_ADSB_HOST,
@@ -27,6 +30,55 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# readsb's r_dst is in nautical miles
+NM_TO_MI = 1.15078
+
+
+class AircraftRegistry:
+    """Compact ICAO hex -> (registration, type code) lookup.
+
+    Fills in tail/type for feeders that don't send them (dump1090-fa/PiAware
+    and most bridges; readsb/tar1090 already include "r"/"t"). The Mictronics
+    DB has ~450k entries; a plain dict of them costs ~60 MB, so they're packed
+    into two int arrays plus one byte blob (~8 MB) and found by binary search.
+    """
+
+    def __init__(self, entries: dict[str, list[str]]) -> None:
+        rows = []
+        for icao_hex, info in entries.items():
+            if len(info) < 2 or not (info[0] or info[1]):
+                continue
+            try:
+                key = int(icao_hex, 16)
+            except ValueError:
+                continue
+            rows.append((key, f"{info[0]}\t{info[1]}".encode()))
+        rows.sort()
+        self._keys = array("I", (key for key, _ in rows))
+        self._offsets = array("I", [0])
+        chunks = []
+        for _, value in rows:
+            chunks.append(value)
+            self._offsets.append(self._offsets[-1] + len(value))
+        self._blob = b"".join(chunks)
+
+    def __len__(self) -> int:
+        return len(self._keys)
+
+    def lookup(self, icao_hex: str | None) -> tuple[str | None, str | None]:
+        """Return (registration, type code) for a hex code, or (None, None)."""
+        try:
+            key = int(icao_hex or "", 16)
+        except ValueError:  # "~"-prefixed non-ICAO addresses, blanks
+            return None, None
+        i = bisect.bisect_left(self._keys, key)
+        if i == len(self._keys) or self._keys[i] != key:
+            return None, None
+        reg, _, type_code = (
+            self._blob[self._offsets[i]:self._offsets[i + 1]].decode().partition("\t")
+        )
+        return reg or None, type_code or None
 
 
 class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
@@ -59,6 +111,12 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         self._military_database: dict[str, dict[str, str]] | None = None
         self._db_last_updated: datetime | None = None
         self._db_loading = False
+        # Registration/type for every aircraft in the same download
+        self._registry: AircraftRegistry | None = None
+
+        # Set by __init__ after setup; routes fill the route_* attributes
+        self.route_client = None
+        self._route_lookup_running = False
 
         super().__init__(
             hass,
@@ -260,20 +318,22 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         if "aircraft" not in data:
             raise UpdateFailed("Invalid ADSB data: missing aircraft array")
 
-        # Filter aircraft by distance if limit is set
-        aircraft = data["aircraft"]
-        if self.distance_limit > 0:
-            aircraft = [
-                plane for plane in aircraft
-                if plane.get("r_dst") is not None and plane["r_dst"] <= self.distance_limit
-            ]
-
         # Process and enrich aircraft data. Include all aircraft, even without
         # position data (important for military detection).
-        processed_aircraft = [self._process_aircraft(plane) for plane in aircraft]
+        processed_aircraft = [self._process_aircraft(plane) for plane in data["aircraft"]]
+
+        # Filter by distance if a limit is set (limit and distance_mi are
+        # both statute miles; aircraft with no known distance are dropped)
+        if self.distance_limit > 0:
+            processed_aircraft = [
+                plane for plane in processed_aircraft
+                if plane["distance_mi"] is not None and plane["distance_mi"] <= self.distance_limit
+            ]
 
         # Sort by distance (closest first), putting aircraft without distance at end
         processed_aircraft.sort(key=lambda x: x.get("distance_mi") if x.get("distance_mi") is not None else 999)
+
+        self._attach_routes(processed_aircraft)
 
         result = {
             "aircraft": processed_aircraft,
@@ -291,10 +351,70 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
 
         return result
 
+    def _attach_routes(
+        self, aircraft_list: list[dict[str, Any]], lookup: bool = True
+    ) -> None:
+        """Add cached routes to aircraft, and look up any new callsigns.
+
+        Every aircraft with a callsign gets a route lookup the first time it's
+        seen. New callsigns go out together in one background batch request
+        (one batch at a time), and results, including "no route known", are
+        cached for 4 hours, so adsb.im sees roughly one small request per
+        poll that has newly arrived flights.
+        """
+        if self.route_client is None:
+            return
+        uncached = []
+        for aircraft in aircraft_list:
+            callsign = aircraft.get("flight")
+            if not callsign:
+                continue
+            route = self.route_client.get_cached_route(callsign)
+            if route is None:
+                uncached.append(
+                    (callsign, aircraft.get("latitude"), aircraft.get("longitude"))
+                )
+            elif route.valid:
+                route = route.for_position(
+                    aircraft.get("latitude"), aircraft.get("longitude"), aircraft.get("heading")
+                )
+                aircraft["route_origin"] = route.origin_iata
+                aircraft["route_origin_name"] = route.origin_name
+                aircraft["route_destination"] = route.destination_iata
+                aircraft["route_destination_name"] = route.destination_name
+
+        if lookup and uncached and not self._route_lookup_running:
+            self._route_lookup_running = True
+            self.hass.async_create_background_task(
+                self._async_lookup_routes(uncached), f"{DOMAIN} route lookup"
+            )
+
+    async def _async_lookup_routes(
+        self, planes: list[tuple[str, float | None, float | None]]
+    ) -> None:
+        """Fetch routes in the background, then refresh entities with them."""
+        try:
+            routes = await self.route_client.async_get_routes(planes)
+        finally:
+            self._route_lookup_running = False
+        if any(route.valid for route in routes.values()) and self.data:
+            # Apply to the current data right away instead of waiting for
+            # the next poll (failed callsigns wait for that poll to retry)
+            self._attach_routes(self.data["aircraft"], lookup=False)
+            self.async_update_listeners()
+
     def _process_aircraft(self, plane: dict[str, Any]) -> dict[str, Any]:
         """Process and enrich individual aircraft data."""
-        # Get enhanced aircraft type information
+        # readsb/tar1090 send registration ("r") and type ("t"); other
+        # feeders don't, so fill them from the downloaded aircraft DB
+        tail = plane.get("r")
         aircraft_type = plane.get("t")
+        if (not tail or not aircraft_type) and self._registry is not None:
+            db_tail, db_type = self._registry.lookup(plane.get("hex"))
+            tail = tail or db_tail
+            aircraft_type = aircraft_type or db_type
+
+        # Get enhanced aircraft type information
         type_info = self.get_aircraft_type_info(aircraft_type)
 
         # readsb reports alt_baro as the string "ground" for taxiing aircraft —
@@ -305,6 +425,23 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         altitude_ft = alt_baro if isinstance(alt_baro, (int, float)) else 0
         gs = plane.get("gs")
         speed_kts = round(gs, 0) if isinstance(gs, (int, float)) else 0
+        # Distance/bearing from HA's home location. Computed here rather than
+        # taken from readsb's r_dst/r_dir: those are nautical miles, relative
+        # to the receiver, and absent entirely on dump1090-fa (PiAware) and
+        # most bridges. r_dst is only a fallback when there's no position.
+        lat, lon = plane.get("lat"), plane.get("lon")
+        distance_mi = None
+        direction = None
+        if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+            distance_mi, direction = distance_and_bearing(
+                self.hass.config.latitude, self.hass.config.longitude, lat, lon
+            )
+            distance_mi = round(distance_mi, 1)
+            direction = round(direction, 1)
+        elif isinstance(plane.get("r_dst"), (int, float)):
+            distance_mi = round(plane["r_dst"] * NM_TO_MI, 1)
+            direction = plane.get("r_dir")
+
         baro_rate = plane.get("baro_rate")
         vertical_rate_fpm = baro_rate if isinstance(baro_rate, (int, float)) else 0
         
@@ -317,7 +454,7 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         return {
             # Basic identifiers
             "hex": plane.get("hex"),
-            "tail": plane.get("r", "Unknown"),
+            "tail": tail or "Unknown",
             "flight": (plane.get("flight") or "").strip() or None,
             
             # Aircraft details (enhanced with tar1090-db)
@@ -333,8 +470,8 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
             # Position and movement
             "latitude": plane.get("lat"),
             "longitude": plane.get("lon"),
-            "distance_mi": round(plane.get("r_dst"), 1) if plane.get("r_dst") is not None else None,
-            "direction": plane.get("r_dir"),
+            "distance_mi": distance_mi,
+            "direction": direction,
             
             # Flight data
             "altitude_ft": altitude_ft,
@@ -386,13 +523,15 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
                     content = await response.text()
 
             # ~700k entries — parse and filter off the event loop
-            military_db = await self.hass.async_add_executor_job(
-                _parse_military_db, content
+            military_db, registry = await self.hass.async_add_executor_job(
+                _parse_aircraft_db, content
             )
             self._military_database = military_db
+            self._registry = registry
             self._db_last_updated = datetime.now()
             _LOGGER.info(
-                "Loaded %d military aircraft from tar1090-db", len(military_db)
+                "Loaded %d military aircraft and %d registrations from tar1090-db",
+                len(military_db), len(registry),
             )
         except Exception as err:
             _LOGGER.error("Error loading military database: %s", err)
@@ -429,8 +568,11 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         }
 
 
-def _parse_military_db(content: str) -> dict[str, dict[str, str]]:
-    """Parse the Mictronics aircraft DB, keeping only military (flag "10")."""
+def _parse_aircraft_db(
+    content: str,
+) -> tuple[dict[str, dict[str, str]], AircraftRegistry]:
+    """Parse the Mictronics aircraft DB into the military subset (flag "10")
+    and a compact registration/type registry for all aircraft."""
     db_data = json.loads(content)
     military_db = {}
     for icao_hex, aircraft_info in db_data.items():
@@ -441,4 +583,4 @@ def _parse_military_db(content: str) -> dict[str, dict[str, str]]:
                 "flag": aircraft_info[2],
                 "description": aircraft_info[3] if len(aircraft_info) > 3 else "",
             }
-    return military_db
+    return military_db, AircraftRegistry(db_data)

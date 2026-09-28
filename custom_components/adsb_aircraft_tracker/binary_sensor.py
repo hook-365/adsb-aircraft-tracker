@@ -70,7 +70,7 @@ class ADSBMilitaryAircraftSensor(ADSBBinarySensorBase):
         """Initialize military aircraft sensor."""
         super().__init__(coordinator, config_entry, "military_aircraft")
         self._attr_name = "ADSB Military Aircraft Present"
-        self._attr_icon = "mdi:airplane-shield"
+        self._attr_icon = "mdi:shield-airplane"
 
     @property
     def is_on(self) -> bool | None:

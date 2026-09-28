@@ -54,6 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create notification manager and route client
     notification_manager = ADSBNotificationManager(hass, coordinator, entry)
     route_client = RouteClient(hass)
+    coordinator.route_client = route_client
     state_client = StateClient(hass)
 
     # Store coordinator, notification manager, route client, state client in hass data

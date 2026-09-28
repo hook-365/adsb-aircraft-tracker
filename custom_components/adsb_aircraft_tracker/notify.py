@@ -226,7 +226,7 @@ class ADSBNotificationManager:
         await self._send_notification(
             title="🪖 MILITARY AIRCRAFT DETECTED",
             message=message,
-            notification_icon="mdi:airplane-shield",
+            notification_icon="mdi:shield-airplane",
             color="green",
         )
     

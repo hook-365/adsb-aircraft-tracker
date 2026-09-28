@@ -13,6 +13,9 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 - Detailed aircraft information (tail number, flight, altitude, speed, type)
 - Top 5 closest aircraft with comprehensive details
 - Aircraft type database with 85,000+ aircraft models
+- Distance and bearing measured from your Home Assistant home location, in real statute miles
+- Registration and aircraft type filled in from the tar1090-db database when the feeder doesn't send them (PiAware/dump1090-fa, bridges)
+- Flight route (origin/destination) for every aircraft with a callsign, as sensor attributes
 - Works with any readsb-style `aircraft.json` source (tar1090, readsb, dump1090-fa/SkyAware, or bridges from other receivers); the data path is auto-detected
 
 📱 **Smart Notifications**
@@ -180,14 +183,14 @@ The integration creates the following entities:
 
 #### `sensor.adsb_closest_aircraft`
 - **Value**: Closest aircraft identifier (flight number, tail, or hex)
-- **Attributes**: Complete details of the nearest aircraft (distance, altitude, speed, heading, type, operator, etc.)
+- **Attributes**: Complete details of the nearest aircraft (distance, altitude, speed, heading, type, operator, etc.), plus its route (`route_origin`, `route_origin_name`, `route_destination`, `route_destination_name`) when [adsb.im](https://adsb.im) knows it. Routes are looked up for every aircraft with a callsign: new callsigns are batched into one request per poll and cached for 4 hours. Private/GA flights usually have no route
 - **Use**: Track the aircraft closest to your location
 
 #### `sensor.adsb_nearest_5_aircraft`
 - **Value**: Summary count (e.g., "5 aircraft detected")
-- **Attributes**: `aircraft_1` through `aircraft_5` with full details for each
+- **Attributes**: `aircraft_1` through `aircraft_5` with full details for each, including route fields
 - **Use**: Display the closest aircraft in cards/dashboards
-- *Note: installs that predate the top-5 expansion keep their original entity id (e.g. `sensor.adsb_nearest_5_aircraft`) — Home Assistant never renames existing entities*
+- *Note: installs that predate the top-5 expansion keep their original entity id (e.g. `sensor.adsb_nearest_3_aircraft`) — Home Assistant never renames existing entities*
 
 #### `sensor.adsb_military_aircraft_details`
 - **Value**: Military detection summary (e.g., "Military aircraft detected: 2 aircraft")
@@ -290,6 +293,8 @@ automation:
 
 ## Dashboard Examples
 
+The examples use the default entity IDs. If yours differ (check **Settings → Entities**, e.g. a second feeder gets a `_2` suffix, or an older install has `sensor.adsb_nearest_3_aircraft`), swap in your own. Each YAML block is one card.
+
 ### Complete Aircraft Tracker Card
 
 Perfect for a comprehensive aircraft tracking dashboard using Mushroom cards:
@@ -320,30 +325,45 @@ cards:
       **1. {{ a1.tail }}** {% if a1.flight and a1.flight != a1.tail %}({{ a1.flight }}){% endif %}
 
       - {{ a1.description }}
+      {%- if a1.route_origin %}
+      - Route: {{ a1.route_origin_name }} ({{ a1.route_origin }}) → {{ a1.route_destination_name }} ({{ a1.route_destination }})
+      {%- endif %}
       - Distance: {{ a1.distance_display }}
       - Altitude: {{ a1.altitude_ft }}ft
       - Speed: {{ a1.speed_kts }}kts
+      {%- if a1.operator %}
       - Operator: {{ a1.operator }}
+      {%- endif %}
 
       {% endif %}
       {% if a2 %}
       **2. {{ a2.tail }}** {% if a2.flight and a2.flight != a2.tail %}({{ a2.flight }}){% endif %}
 
       - {{ a2.description }}
+      {%- if a2.route_origin %}
+      - Route: {{ a2.route_origin_name }} ({{ a2.route_origin }}) → {{ a2.route_destination_name }} ({{ a2.route_destination }})
+      {%- endif %}
       - Distance: {{ a2.distance_display }}
       - Altitude: {{ a2.altitude_ft }}ft
       - Speed: {{ a2.speed_kts }}kts
+      {%- if a2.operator %}
       - Operator: {{ a2.operator }}
+      {%- endif %}
 
       {% endif %}
       {% if a3 %}
       **3. {{ a3.tail }}** {% if a3.flight and a3.flight != a3.tail %}({{ a3.flight }}){% endif %}
 
       - {{ a3.description }}
+      {%- if a3.route_origin %}
+      - Route: {{ a3.route_origin_name }} ({{ a3.route_origin }}) → {{ a3.route_destination_name }} ({{ a3.route_destination }})
+      {%- endif %}
       - Distance: {{ a3.distance_display }}
       - Altitude: {{ a3.altitude_ft }}ft
       - Speed: {{ a3.speed_kts }}kts
+      {%- if a3.operator %}
       - Operator: {{ a3.operator }}
+      {%- endif %}
 
       {% endif %}
   - type: custom:mushroom-chips-card
@@ -376,17 +396,11 @@ secondary: |
   {% else %}
     No military aircraft detected
   {% endif %}
-icon: mdi:airplane-shield
-icon_color: |
-  {% if is_state('binary_sensor.adsb_military_aircraft_present', 'on') %}
-    red
-  {% else %}
-    green
-  {% endif %}
-badge_icon: |
-  {% if is_state('binary_sensor.adsb_military_aircraft_present', 'on') %}
-    mdi:alert
-  {% endif %}
+icon: mdi:shield-airplane
+icon_color: >-
+  {{ 'red' if is_state('binary_sensor.adsb_military_aircraft_present', 'on') else 'green' }}
+badge_icon: >-
+  {{ 'mdi:alert' if is_state('binary_sensor.adsb_military_aircraft_present', 'on') else '' }}
 badge_color: red
 tap_action:
   action: more-info
@@ -449,7 +463,7 @@ cards:
         icon: mdi:airplane-marker
       - entity: binary_sensor.adsb_military_aircraft_present
         name: Military Present
-        icon: mdi:airplane-shield
+        icon: mdi:shield-airplane
   - type: entities
     title: Closest Aircraft Details
     entities:
@@ -486,21 +500,30 @@ cards:
       ### Top 3 Aircraft
 
       {% if a1 %}
-      **1. {{ a1.tail }}** {% if a1.flight %}({{ a1.flight }}){% endif %}
+      **1. {{ a1.tail }}** {% if a1.flight and a1.flight != a1.tail %}({{ a1.flight }}){% endif %}
       📍 {{ a1.distance_display }} • ⬆️ {{ a1.altitude_ft }}ft • 🚀 {{ a1.speed_kts }}kts
       {{ a1.description }}
+      {%- if a1.route_origin %}
+      ✈️ {{ a1.route_origin }} → {{ a1.route_destination }}
+      {%- endif %}
       {% endif %}
 
       {% if a2 %}
-      **2. {{ a2.tail }}** {% if a2.flight %}({{ a2.flight }}){% endif %}
+      **2. {{ a2.tail }}** {% if a2.flight and a2.flight != a2.tail %}({{ a2.flight }}){% endif %}
       📍 {{ a2.distance_display }} • ⬆️ {{ a2.altitude_ft }}ft • 🚀 {{ a2.speed_kts }}kts
       {{ a2.description }}
+      {%- if a2.route_origin %}
+      ✈️ {{ a2.route_origin }} → {{ a2.route_destination }}
+      {%- endif %}
       {% endif %}
 
       {% if a3 %}
-      **3. {{ a3.tail }}** {% if a3.flight %}({{ a3.flight }}){% endif %}
+      **3. {{ a3.tail }}** {% if a3.flight and a3.flight != a3.tail %}({{ a3.flight }}){% endif %}
       📍 {{ a3.distance_display }} • ⬆️ {{ a3.altitude_ft }}ft • 🚀 {{ a3.speed_kts }}kts
       {{ a3.description }}
+      {%- if a3.route_origin %}
+      ✈️ {{ a3.route_origin }} → {{ a3.route_destination }}
+      {%- endif %}
       {% endif %}
 
       {% if not a1 %}
@@ -510,30 +533,38 @@ cards:
 
 ### Simple Entity Cards
 
-Individual cards for each sensor:
+Individual cards for each sensor. Each block is a separate card.
+
+Basic aircraft count:
 
 ```yaml
-# Basic aircraft count
 type: entity
 entity: sensor.adsb_all_aircraft
 name: Aircraft Nearby
 icon: mdi:airplane
+```
 
-# Military aircraft alert
+Military aircraft alert:
+
+```yaml
 type: entity
 entity: binary_sensor.adsb_military_aircraft_present
 name: Military Aircraft
-icon: mdi:airplane-shield
+icon: mdi:shield-airplane
 state_color: true
+```
 
-# Closest aircraft with details
-type: entity
+Closest aircraft with distance and altitude:
+
+```yaml
+type: tile
 entity: sensor.adsb_closest_aircraft
 name: Closest Aircraft
-secondary_info: |
-  {% set distance = state_attr('sensor.adsb_closest_aircraft', 'distance_display') %}
-  {% set altitude = state_attr('sensor.adsb_closest_aircraft', 'altitude_ft') %}
-  {{ distance }} • {{ altitude }}ft
+icon: mdi:airplane-marker
+state_content:
+  - state
+  - distance_display
+  - altitude_ft
 ```
 
 ### Military Aircraft Alert Card
