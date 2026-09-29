@@ -11,7 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, INTEGRATION_VERSION
+from .const import DOMAIN, INTEGRATION_VERSION, SUGGESTED_OBJECT_IDS
 from .coordinator import ADSBDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,6 +45,10 @@ class ADSBBinarySensorBase(CoordinatorEntity, BinarySensorEntity):
 
         # Entity attributes
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_type}"
+        # Stable key the dashboard card uses to find this entity
+        self._attr_translation_key = sensor_type
+        # Only used when the entity is first registered (see const.py)
+        self.entity_id = f"binary_sensor.{SUGGESTED_OBJECT_IDS[sensor_type]}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, config_entry.entry_id)},
             name=f"ADSB Tracker ({coordinator.adsb_host})",

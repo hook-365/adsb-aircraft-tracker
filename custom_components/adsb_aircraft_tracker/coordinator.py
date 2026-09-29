@@ -351,6 +351,18 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
 
         return result
 
+    def nearest_aircraft(self, limit: int | None = None) -> list[dict[str, Any]]:
+        """Aircraft with a known distance, closest first.
+
+        Mode-S contacts without a position stay in the full list (counts,
+        military detection) but can't be ranked by distance, so "closest"
+        and "nearest N" only ever consider aircraft that have one.
+        """
+        if not self.data:
+            return []
+        ranked = [a for a in self.data["aircraft"] if a.get("distance_mi") is not None]
+        return ranked[:limit] if limit is not None else ranked
+
     def _attach_routes(
         self, aircraft_list: list[dict[str, Any]], lookup: bool = True
     ) -> None:

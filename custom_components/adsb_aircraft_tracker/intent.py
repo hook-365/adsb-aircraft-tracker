@@ -81,9 +81,9 @@ class WhatPlaneIntentHandler(intent.IntentHandler):
             response.async_set_speech("I don't have any aircraft data right now.")
             return response
 
-        aircraft_list = coordinator.data.get("aircraft", [])
+        aircraft_list = coordinator.nearest_aircraft()
         if not aircraft_list:
-            response.async_set_speech("No planes are nearby right now.")
+            response.async_set_speech("No planes with a known position are nearby right now.")
             return response
 
         aircraft = dict(aircraft_list[0])
@@ -234,7 +234,8 @@ class AircraftCountIntentHandler(intent.IntentHandler):
             response.async_set_speech("No aircraft are being tracked right now.")
             return response
 
-        closest = aircraft_list[0]
+        nearest = coordinator.nearest_aircraft(1)
+        closest = nearest[0] if nearest else {}
         dist = coordinator.format_distance(closest.get("distance_mi"))
         if dist and dist != "Unknown":
             speech = f"I'm currently tracking {count} aircraft. The closest is {dist} away."
@@ -260,9 +261,9 @@ class AircraftRouteIntentHandler(intent.IntentHandler):
             response.async_set_speech("I don't have any aircraft data right now.")
             return response
 
-        aircraft_list = coordinator.data.get("aircraft", [])
+        aircraft_list = coordinator.nearest_aircraft()
         if not aircraft_list:
-            response.async_set_speech("No planes are nearby right now.")
+            response.async_set_speech("No planes with a known position are nearby right now.")
             return response
 
         aircraft = dict(aircraft_list[0])

@@ -5,6 +5,7 @@ import logging
 import os
 from datetime import timedelta
 
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -17,6 +18,7 @@ from .const import (
     DOMAIN,
     CONF_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
+    INTEGRATION_VERSION,
     MILITARY_DB_REFRESH_INTERVAL,
 )
 from .coordinator import ADSBDataUpdateCoordinator
@@ -30,9 +32,30 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
+CARD_URL = f"/{DOMAIN}/adsb-aircraft-tracker-card.js"
+
+
+async def _async_register_card(hass: HomeAssistant) -> None:
+    """Serve the dashboard card and load it on every frontend, once."""
+    if hass.data.get(f"{DOMAIN}_card_registered"):
+        return
+    hass.data[f"{DOMAIN}_card_registered"] = True
+    path = os.path.join(os.path.dirname(__file__), "frontend", "adsb-aircraft-tracker-card.js")
+    try:
+        from homeassistant.components.http import StaticPathConfig
+
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(CARD_URL, path, cache_headers=False)]
+        )
+    except ImportError:  # HA < 2024.7
+        hass.http.register_static_path(CARD_URL, path, cache_headers=False)
+    # Version query busts browser caches when the card changes
+    add_extra_js_url(hass, f"{CARD_URL}?v={INTEGRATION_VERSION}")
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up ADSB Aircraft Tracker from a config entry."""
+    await _async_register_card(hass)
     
     # Create data coordinator (options override the original setup data)
     update_interval = timedelta(

@@ -291,9 +291,25 @@ automation:
           message: "Aircraft {{ state_attr('sensor.adsb_closest_aircraft', 'tail') }} overhead at {{ state_attr('sensor.adsb_closest_aircraft', 'altitude_ft') }} feet"
 ```
 
+## Dashboard Card
+
+The integration ships its own dashboard card. There's nothing to install: it loads automatically with the integration.
+
+1. Edit a dashboard → **Add card** → search for **ADSB Aircraft Tracker**
+2. Pick your tracker (only needed if you have more than one feeder) and how many aircraft to show
+
+It lists the nearest aircraft with callsign, tail, route, distance, altitude and speed, colors each plane by altitude, and flags military aircraft. The card finds your tracker's entities by itself, so it works whatever your entity IDs are.
+
+```yaml
+type: custom:adsb-aircraft-tracker-card
+count: 5          # optional, 1-5
+title: Aircraft   # optional
+device_id: ...    # optional; the editor fills this in when you pick a tracker
+```
+
 ## Dashboard Examples
 
-The examples use the default entity IDs. If yours differ (check **Settings → Entities**, e.g. a second feeder gets a `_2` suffix, or an older install has `sensor.adsb_nearest_3_aircraft`), swap in your own. Each YAML block is one card.
+Prefer to build your own? The YAML examples below use the default entity IDs. New installs (1.6.1+) get exactly these IDs. Installs set up earlier on Home Assistant 2026.x may have longer IDs with the device name in them (e.g. `sensor.adsb_tracker_192_168_1_100_adsb_all_aircraft`), a second feeder gets a `_2` suffix, and very old installs may have `sensor.adsb_nearest_3_aircraft`. Check **Settings → Entities** and swap in your own; Home Assistant never renames existing entities. You can also rename them there to match the examples. Each YAML block is one card.
 
 ### Complete Aircraft Tracker Card
 

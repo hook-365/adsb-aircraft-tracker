@@ -3,10 +3,11 @@
   "name": "ADSB Aircraft Tracker",
   "codeowners": ["@hook-365"],
   "config_flow": true,
+  "dependencies": ["frontend", "http"],
   "documentation": "https://github.com/hook-365/adsb-aircraft-tracker",
   "integration_type": "hub",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/hook-365/adsb-aircraft-tracker/issues",
   "requirements": [],
-  "version": "1.6.0"
+  "version": "1.6.1"
 }

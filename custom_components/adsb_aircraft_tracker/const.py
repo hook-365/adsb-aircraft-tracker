@@ -4,7 +4,7 @@ from datetime import timedelta
 DOMAIN = "adsb_aircraft_tracker"
 
 # Keep in sync with manifest.json
-INTEGRATION_VERSION = "1.4.2"
+INTEGRATION_VERSION = "1.6.1"  # keep in sync with manifest.json
 
 # tar1090-db (Mictronics) military aircraft database
 MILITARY_DB_URL = (
@@ -12,6 +12,21 @@ MILITARY_DB_URL = (
     "/dev/webapp/src/db/aircrafts.json"
 )
 MILITARY_DB_REFRESH_INTERVAL = timedelta(hours=24)
+
+# Entity ids suggested for NEW installs (keyed by sensor_type, which is also
+# each entity's translation_key). HA 2026.x otherwise prefixes the device
+# name ("ADSB Tracker (<host>)") into generated ids, which broke every README
+# example. Existing entities keep whatever id the registry already has; a
+# second feeder gets "_2" suffixes. The dashboard card finds entities by
+# device + translation_key, so it never depends on these.
+SUGGESTED_OBJECT_IDS = {
+    "closest_aircraft": "adsb_closest_aircraft",
+    "top_aircraft": "adsb_nearest_5_aircraft",
+    "all_aircraft": "adsb_all_aircraft",
+    "military_details": "adsb_military_aircraft_details",
+    "military_database_status": "adsb_military_database_status",
+    "military_aircraft": "adsb_military_aircraft_present",
+}
 
 # Configuration keys
 CONF_ADSB_HOST = "adsb_host"
