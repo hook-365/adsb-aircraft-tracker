@@ -111,6 +111,8 @@ class ADSBClosestAircraftSensor(ADSBSensorBase):
             "altitude_ft": aircraft.get("altitude_ft"),
             "speed_kts": aircraft.get("speed_kts"),
             "heading": aircraft.get("heading"),
+            "vertical_rate_fpm": aircraft.get("vertical_rate_fpm", 0),
+            "on_ground": aircraft.get("on_ground", False),
             "aircraft_type": aircraft.get("aircraft_type"),
             "description": aircraft.get("description"),
             "operator": aircraft.get("operator"),
