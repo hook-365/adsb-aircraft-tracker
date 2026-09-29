@@ -4,9 +4,16 @@
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
 
-A comprehensive Home Assistant integration for tracking aircraft using ADSB data from dump1090/tar1090 feeders.
+A comprehensive Home Assistant integration for tracking aircraft using ADSB data from dump1090/tar1090 feeders, with built-in dashboard cards, voice queries and military aircraft alerts.
+
+![ADSB Aircraft Tracker dashboard cards: nearest aircraft with routes, closest aircraft detail, military alert and receiver stats](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/dashboard-cards.png)
 
 ## Features
+
+📊 **Dashboard Cards** (built in, nothing to install)
+- Four cards in the dashboard **Add card** picker: nearest aircraft, closest aircraft detail, military alert, receiver stats
+- Routes, altitude coloring, climb/descent and heading at a glance
+- Find your tracker's entities automatically, with a visual editor, and work with multiple feeders
 
 🛩️ **Aircraft Tracking**
 - Real-time aircraft monitoring within configurable distance
@@ -88,6 +95,26 @@ After initial setup, click **CONFIGURE** on your integration to access advanced 
 - **External URL**: Custom ADSB website URL for notifications
 - **Update Interval**: Adjust data refresh frequency
 - **Distance Limit**: Set maximum tracking range
+
+## Dashboard Cards
+
+The integration ships four dashboard cards. There's nothing to install: they load automatically with the integration. Edit a dashboard → **Add card** → search **ADSB**.
+
+| Card | Shows |
+|------|-------|
+| **ADSB Aircraft Tracker** (`custom:adsb-aircraft-tracker-card`) | The nearest 1–5 aircraft: callsign, tail, route, distance, altitude, speed, colored by altitude, with a military flag |
+| **ADSB Closest Aircraft** (`custom:adsb-closest-aircraft-card`) | The closest aircraft in detail: type, operator, route with city names, distance, altitude with climb/descent, speed, heading, emergency squawks |
+| **ADSB Military Alert** (`custom:adsb-military-card`) | A green "all clear", or a red alert listing each military aircraft detected |
+| **ADSB Stats** (`custom:adsb-stats-card`) | Tracked aircraft, closest distance, military count and military-database health |
+
+Every card finds your tracker's entities by itself, so they work whatever your entity IDs are. If you have more than one feeder, pick which tracker in the card editor. Tap any card or row for details.
+
+```yaml
+type: custom:adsb-aircraft-tracker-card   # or any of the card types above
+title: Aircraft   # optional
+count: 5          # optional, nearest-aircraft card only (1-5)
+device_id: ...    # optional; the editor fills this in when you pick a tracker
+```
 
 ## Voice / Assist Support
 
@@ -291,29 +318,9 @@ automation:
           message: "Aircraft {{ state_attr('sensor.adsb_closest_aircraft', 'tail') }} overhead at {{ state_attr('sensor.adsb_closest_aircraft', 'altitude_ft') }} feet"
 ```
 
-## Dashboard Cards
-
-The integration ships four dashboard cards. There's nothing to install: they load automatically with the integration. Edit a dashboard → **Add card** → search **ADSB**.
-
-| Card | Shows |
-|------|-------|
-| **ADSB Aircraft Tracker** (`custom:adsb-aircraft-tracker-card`) | The nearest 1–5 aircraft: callsign, tail, route, distance, altitude, speed, colored by altitude, with a military flag |
-| **ADSB Closest Aircraft** (`custom:adsb-closest-aircraft-card`) | The closest aircraft in detail: type, operator, route with city names, distance, altitude with climb/descent, speed, heading, emergency squawks |
-| **ADSB Military Alert** (`custom:adsb-military-card`) | A green "all clear", or a red alert listing each military aircraft detected |
-| **ADSB Stats** (`custom:adsb-stats-card`) | Tracked aircraft, closest distance, military count and military-database health |
-
-Every card finds your tracker's entities by itself, so they work whatever your entity IDs are. If you have more than one feeder, pick which tracker in the card editor. Tap any card or row for details.
-
-```yaml
-type: custom:adsb-aircraft-tracker-card   # or any of the card types above
-title: Aircraft   # optional
-count: 5          # optional, nearest-aircraft card only (1-5)
-device_id: ...    # optional; the editor fills this in when you pick a tracker
-```
-
 ## Dashboard Examples
 
-Prefer to build your own? The YAML examples below use the default entity IDs. New installs (1.6.1+) get exactly these IDs. Installs set up earlier on Home Assistant 2026.x may have longer IDs with the device name in them (e.g. `sensor.adsb_tracker_192_168_1_100_adsb_all_aircraft`), a second feeder gets a `_2` suffix, and very old installs may have `sensor.adsb_nearest_3_aircraft`. Check **Settings → Entities** and swap in your own; Home Assistant never renames existing entities. You can also rename them there to match the examples. Each YAML block is one card.
+Prefer to build your own instead of using the [built-in cards](#dashboard-cards)? The YAML examples below use the default entity IDs. New installs (1.6.1+) get exactly these IDs. Installs set up earlier on Home Assistant 2026.x may have longer IDs with the device name in them (e.g. `sensor.adsb_tracker_192_168_1_100_adsb_all_aircraft`), a second feeder gets a `_2` suffix, and very old installs may have `sensor.adsb_nearest_3_aircraft`. Check **Settings → Entities** and swap in your own; Home Assistant never renames existing entities. You can also rename them there to match the examples. Each YAML block is one card.
 
 ### Complete Aircraft Tracker Card
 
@@ -463,11 +470,11 @@ tap_action:
   action: more-info
 ```
 
-## Built-in Card Examples
+## Standard Home Assistant Card Examples
 
-If you prefer to use Home Assistant's built-in cards without custom components:
+YAML using only Home Assistant's standard cards, no Mushroom or other custom cards needed:
 
-### Aircraft Overview with Built-in Cards
+### Aircraft Overview with Standard Cards
 
 ```yaml
 type: vertical-stack
