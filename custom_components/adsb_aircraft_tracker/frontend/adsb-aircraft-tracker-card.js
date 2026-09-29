@@ -427,12 +427,24 @@ const CARDS = [
     "Tracked aircraft, closest distance, military count and database health."],
 ];
 
-window.customCards = window.customCards || [];
-for (const [type, cls, name, description] of CARDS) {
-  if (customElements.get(type)) continue;
-  customElements.define(type, cls);
-  window.customCards.push({
-    type, name, description, preview: true,
-    documentationURL: "https://github.com/hook-365/adsb-aircraft-tracker",
-  });
+const registerCards = () => {
+  window.customCards = window.customCards || [];
+  for (const [type, cls, name, description] of CARDS) {
+    if (window.customElements.get(type)) continue;
+    window.customElements.define(type, cls);
+    window.customCards.push({
+      type, name, description, preview: true,
+      documentationURL: "https://github.com/hook-365/adsb-aircraft-tracker",
+    });
+  }
+};
+
+// HA's app bundle swaps window.customElements for a scoped-registry polyfill.
+// Anything defined before the swap is invisible to HA ("Custom element not
+// found"), and extra modules load in parallel with the app, so wait for HA to
+// define <home-assistant> — the swap has happened by then.
+if (window.customElements.get("home-assistant")) {
+  registerCards();
+} else {
+  window.customElements.whenDefined("home-assistant").then(registerCards);
 }

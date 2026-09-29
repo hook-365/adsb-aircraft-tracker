@@ -87,6 +87,14 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 Any source that returns readsb-style JSON (a top-level `"aircraft"` list with `hex`, `lat`/`lon`, `alt_baro`, `gs`, `track`, `flight`) works, including bridges from other services. The content type doesn't matter; `text/plain` is accepted.
 
+### Flightradar24 Receivers
+
+A local Flightradar24 receiver doesn't serve `aircraft.json` itself. Brian O'Hern's [FR24 dump1090 Bridge](https://github.com/brian-r-ohern/fr24-dump1090-bridge) is a Home Assistant app that polls the receiver's local `/flights.js` feed and republishes it at `/data/aircraft.json`. Position, altitude, speed, heading, callsign and Mode-S hex are translated conservatively, and aircraft without a position stay in the feed (they count toward totals but not closest/nearest).
+
+1. **Settings → Apps → Install app**, open the repository menu and add `https://github.com/brian-r-ohern/fr24-dump1090-bridge`
+2. Install **FR24 dump1090 Bridge**, enter your receiver's host, port, username and password, and start it
+3. Set up this integration with **ADSB Host** = the hostname on the bridge's **Info** page, **Port** = `8085`, and leave **Data Path** blank
+
 ### Advanced Options
 
 After initial setup, click **CONFIGURE** on your integration to access advanced options:
