@@ -18,9 +18,11 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .geo import distance_and_bearing
 
-# Minimum spacing between routeset batches (adsb.im: "group callsigns for at
-# least 30 seconds before POSTing")
-ROUTE_LOOKUP_MIN_GAP = timedelta(seconds=30)
+# Route lookups are batched: the first unknown callsign starts a timer, and
+# every callsign that turns up until it expires goes out in one routeset
+# request. adsb.im (a one-person hobby service) asked for "a minute or
+# three" of collection per request (hook-365/adsb-aircraft-tracker#7).
+ROUTE_LOOKUP_BATCH_WINDOW = timedelta(minutes=2)
 from .const import (
     DOMAIN,
     CONF_ADSB_HOST,
@@ -121,7 +123,8 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         # Set by __init__ after setup; routes fill the route_* attributes
         self.route_client = None
         self._route_lookup_running = False
-        self._route_lookup_last: datetime | None = None
+        # When the current collection window ends (None = no callsigns waiting)
+        self._route_batch_due: datetime | None = None
 
         super().__init__(
             hass,
@@ -376,10 +379,10 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         Every aircraft with a callsign gets a route lookup the first time it's
         seen. New callsigns go out together in one background batch request
         (one batch at a time), and results, including "no route known", are
-        cached for 4 hours. adsb.im asks callers to group callsigns for at
-        least 30 s before posting, so batches are spaced ROUTE_LOOKUP_MIN_GAP
-        apart regardless of the poll interval; new callsigns simply wait
-        (uncached) for the next batch.
+        cached for 4 hours. The first unknown callsign opens a collection
+        window of ROUTE_LOOKUP_BATCH_WINDOW; when it closes, everything still
+        unknown goes to adsb.im in one request. New callsigns simply wait
+        (uncached) for the window to close, or for the next one.
         """
         if self.route_client is None:
             return
@@ -402,17 +405,20 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
                 aircraft["route_destination"] = route.destination_iata
                 aircraft["route_destination_name"] = route.destination_name
 
-        if not (lookup and uncached) or self._route_lookup_running:
+        if not lookup or self._route_lookup_running:
+            return
+        if not uncached:
+            self._route_batch_due = None
             return
         if self.route_client.is_backing_off():
             return
         now = datetime.now()
-        if (
-            self._route_lookup_last is not None
-            and now - self._route_lookup_last < ROUTE_LOOKUP_MIN_GAP
-        ):
+        if self._route_batch_due is None:
+            self._route_batch_due = now + ROUTE_LOOKUP_BATCH_WINDOW
             return
-        self._route_lookup_last = now
+        if now < self._route_batch_due:
+            return
+        self._route_batch_due = None
         self._route_lookup_running = True
         self.hass.async_create_background_task(
             self._async_lookup_routes(uncached), f"{DOMAIN} route lookup"

@@ -15,12 +15,15 @@ from .geo import angle_between, distance_and_bearing
 
 _LOGGER = logging.getLogger(__name__)
 
-ROUTE_API_URL = "https://adsb.im/api/0/routeset"
+# Plain http on purpose: adsb.im asks for it (TLS setup is most of the
+# per-request cost on their side) and nothing in these requests is secret.
+ROUTE_API_URL = "http://adsb.im/api/0/routeset"
 ROUTE_CACHE_TTL = timedelta(hours=4)
 ROUTE_API_TIMEOUT = 5
 # adsb.im rejects Home Assistant's default User-Agent ("HomeAssistant/…",
 # 403 since 2026-10) and asks for a unique agent with a contact, batched
-# requests, and polite retry behaviour. Identify ourselves on every call.
+# requests over http, and polite retry behaviour (hook-365/adsb-aircraft-tracker#7).
+# Identify ourselves on every call.
 ROUTE_API_USER_AGENT = (
     "adsb-aircraft-tracker/{version} "
     "(+https://github.com/hook-365/adsb-aircraft-tracker; anthony.hook3@gmail.com)"
