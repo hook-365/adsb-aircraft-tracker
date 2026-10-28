@@ -28,7 +28,7 @@ from homeassistant.loader import async_get_integration
 
 from .route_client import RouteClient
 from .state_client import StateClient
-from .intent import async_setup_intents
+from .intent import async_remove_intents, async_setup_intents
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -387,5 +387,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
+        # Intents are shared by every entry; drop them with the last one so a
+        # later setup registers cleanly instead of "overwriting" (#6)
+        if not hass.data[DOMAIN]:
+            await async_remove_intents(hass)
 
     return unload_ok

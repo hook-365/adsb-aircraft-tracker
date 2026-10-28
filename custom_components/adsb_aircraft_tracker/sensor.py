@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import MATCH_ALL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -202,7 +203,10 @@ class ADSBTopAircraftSensor(ADSBSensorBase):
 
 class ADSBMilitaryDetailsSensor(ADSBSensorBase):
     """Sensor for military aircraft details and detection reasons."""
-    
+
+    # Unbounded per-aircraft list: same recorder concern as the all-aircraft sensor
+    _unrecorded_attributes = frozenset({MATCH_ALL})
+
     def __init__(
         self,
         coordinator: ADSBDataUpdateCoordinator,
@@ -270,7 +274,14 @@ class ADSBMilitaryDetailsSensor(ADSBSensorBase):
 
 class ADSBAllAircraftSensor(ADSBSensorBase):
     """Sensor for all tracked aircraft with complete details."""
-    
+
+    # One entry per aircraft (~500 bytes each) passes the recorder's 16 KB
+    # attribute limit at ~30 aircraft, logging a warning every poll and
+    # storing nothing (#6). The attributes stay available live (templates,
+    # cards and the LLM tools read the state machine) but are not written
+    # to history, where a per-poll snapshot of every aircraft has no use.
+    _unrecorded_attributes = frozenset({MATCH_ALL})
+
     def __init__(self, coordinator: ADSBDataUpdateCoordinator, config_entry: ConfigEntry) -> None:
         """Initialize all aircraft sensor."""
         super().__init__(coordinator, config_entry, "all_aircraft")

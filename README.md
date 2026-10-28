@@ -213,7 +213,7 @@ The integration creates the following entities:
 
 #### `sensor.adsb_all_aircraft`
 - **Value**: Total aircraft count (e.g., "5 aircraft" or "12 aircraft (closest: 2.1 mi)")
-- **Attributes**: Complete details for all tracked aircraft with distance, altitude, speed, type, etc.
+- **Attributes**: Complete details for all tracked aircraft with distance, altitude, speed, type, etc. These are live only: they are excluded from the recorder (history), since a per-poll list of every aircraft would exceed Home Assistant's attribute size limit at ~30 aircraft. Templates, cards and voice tools read them normally.
 - **Use**: Overview of all aircraft in range
 
 #### `sensor.adsb_closest_aircraft`

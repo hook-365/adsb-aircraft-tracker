@@ -49,16 +49,43 @@ _SUPERLATIVE_MAP = {
 }
 
 
+_REGISTERED_KEY = f"{DOMAIN}_intents_registered"
+
+
+def _intent_handlers() -> tuple:
+    """Handler classes (defined further down in this module)."""
+    return (
+        WhatPlaneIntentHandler,
+        NearestAircraftIntentHandler,
+        MilitaryStatusIntentHandler,
+        AircraftCountIntentHandler,
+        AircraftRouteIntentHandler,
+        AircraftByTypeIntentHandler,
+        AircraftSuperlativeIntentHandler,
+    )
+
+
 async def async_setup_intents(hass: HomeAssistant) -> None:
-    """Register ADSB intent handlers with Home Assistant."""
-    intent.async_register(hass, WhatPlaneIntentHandler())
-    intent.async_register(hass, NearestAircraftIntentHandler())
-    intent.async_register(hass, MilitaryStatusIntentHandler())
-    intent.async_register(hass, AircraftCountIntentHandler())
-    intent.async_register(hass, AircraftRouteIntentHandler())
-    intent.async_register(hass, AircraftByTypeIntentHandler())
-    intent.async_register(hass, AircraftSuperlativeIntentHandler())
+    """Register ADSB intent handlers once per Home Assistant process.
+
+    Intents are global, not per config entry: registering them again on a
+    reload or a second feeder makes HA log "Intent … is being overwritten"
+    for each handler (#6).
+    """
+    if hass.data.get(_REGISTERED_KEY):
+        return
+    for handler in _intent_handlers():
+        intent.async_register(hass, handler())
+    hass.data[_REGISTERED_KEY] = True
     _LOGGER.info("Registered ADSB voice intent handlers")
+
+
+async def async_remove_intents(hass: HomeAssistant) -> None:
+    """Unregister the handlers (called when the last config entry unloads)."""
+    if not hass.data.pop(_REGISTERED_KEY, False):
+        return
+    for handler in _intent_handlers():
+        intent.async_remove(hass, handler.intent_type)
 
 
 # ---------------------------------------------------------------------------
