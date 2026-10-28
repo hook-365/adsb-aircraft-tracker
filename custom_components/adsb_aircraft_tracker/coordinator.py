@@ -17,6 +17,10 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .geo import distance_and_bearing
+
+# Minimum spacing between routeset batches (adsb.im: "group callsigns for at
+# least 30 seconds before POSTing")
+ROUTE_LOOKUP_MIN_GAP = timedelta(seconds=30)
 from .const import (
     DOMAIN,
     CONF_ADSB_HOST,
@@ -117,6 +121,7 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         # Set by __init__ after setup; routes fill the route_* attributes
         self.route_client = None
         self._route_lookup_running = False
+        self._route_lookup_last: datetime | None = None
 
         super().__init__(
             hass,
@@ -371,8 +376,10 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         Every aircraft with a callsign gets a route lookup the first time it's
         seen. New callsigns go out together in one background batch request
         (one batch at a time), and results, including "no route known", are
-        cached for 4 hours, so adsb.im sees roughly one small request per
-        poll that has newly arrived flights.
+        cached for 4 hours. adsb.im asks callers to group callsigns for at
+        least 30 s before posting, so batches are spaced ROUTE_LOOKUP_MIN_GAP
+        apart regardless of the poll interval; new callsigns simply wait
+        (uncached) for the next batch.
         """
         if self.route_client is None:
             return
@@ -395,11 +402,21 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
                 aircraft["route_destination"] = route.destination_iata
                 aircraft["route_destination_name"] = route.destination_name
 
-        if lookup and uncached and not self._route_lookup_running:
-            self._route_lookup_running = True
-            self.hass.async_create_background_task(
-                self._async_lookup_routes(uncached), f"{DOMAIN} route lookup"
-            )
+        if not (lookup and uncached) or self._route_lookup_running:
+            return
+        if self.route_client.is_backing_off():
+            return
+        now = datetime.now()
+        if (
+            self._route_lookup_last is not None
+            and now - self._route_lookup_last < ROUTE_LOOKUP_MIN_GAP
+        ):
+            return
+        self._route_lookup_last = now
+        self._route_lookup_running = True
+        self.hass.async_create_background_task(
+            self._async_lookup_routes(uncached), f"{DOMAIN} route lookup"
+        )
 
     async def _async_lookup_routes(
         self, planes: list[tuple[str, float | None, float | None]]

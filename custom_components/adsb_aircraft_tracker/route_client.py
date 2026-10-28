@@ -18,6 +18,16 @@ _LOGGER = logging.getLogger(__name__)
 ROUTE_API_URL = "https://adsb.im/api/0/routeset"
 ROUTE_CACHE_TTL = timedelta(hours=4)
 ROUTE_API_TIMEOUT = 5
+# adsb.im rejects Home Assistant's default User-Agent ("HomeAssistant/…",
+# 403 since 2026-10) and asks for a unique agent with a contact, batched
+# requests, and polite retry behaviour. Identify ourselves on every call.
+ROUTE_API_USER_AGENT = (
+    "adsb-aircraft-tracker/{version} "
+    "(+https://github.com/hook-365/adsb-aircraft-tracker; anthony.hook3@gmail.com)"
+)
+# After a refusal (403/429) or upstream error (5xx), stop asking for a while
+# instead of retrying on every poll.
+ROUTE_API_BACKOFF = timedelta(minutes=10)
 # Callsigns per routeset request when looking up routes in bulk
 ROUTE_BATCH_SIZE = 100
 
@@ -76,10 +86,16 @@ class RouteInfo:
 class RouteClient:
     """Async client for fetching flight route data with TTL cache."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
-        """Initialize route client."""
+    def __init__(self, hass: HomeAssistant, version: str = "0") -> None:
+        """Initialize route client. `version` is the integration version, for the User-Agent."""
         self._hass = hass
         self._cache: dict[str, tuple[RouteInfo, datetime]] = {}
+        self._blocked_until: datetime | None = None
+        self._user_agent = ROUTE_API_USER_AGENT.format(version=version)
+
+    def is_backing_off(self) -> bool:
+        """True while a recent refusal/error has paused route lookups."""
+        return self._blocked_until is not None and dt_util.utcnow() < self._blocked_until
 
     def get_cached_route(self, callsign: str | None) -> RouteInfo | None:
         """Return an unexpired cached route without fetching, else None."""
@@ -162,20 +178,34 @@ class RouteClient:
 
     async def _async_post(self, payload: dict[str, Any], what: str) -> Any:
         """POST to the routeset API; return parsed JSON, or None on failure."""
+        if self.is_backing_off():
+            return None
         try:
             session = async_get_clientsession(self._hass)
             async with asyncio.timeout(ROUTE_API_TIMEOUT):
                 async with session.post(
                     ROUTE_API_URL,
                     json=payload,
-                    headers={"Accept": "application/json"},
+                    headers={
+                        "Accept": "application/json",
+                        "User-Agent": self._user_agent,
+                    },
                 ) as response:
-                    if response.status != 200:
+                    if response.status == 200:
+                        self._blocked_until = None
+                        return await response.json()
+                    if response.status in (403, 429) or response.status >= 500:
+                        self._blocked_until = dt_util.utcnow() + ROUTE_API_BACKOFF
+                        _LOGGER.warning(
+                            "Route API (adsb.im) returned HTTP %d for %s; "
+                            "pausing route lookups for %s",
+                            response.status, what, ROUTE_API_BACKOFF,
+                        )
+                    else:
                         _LOGGER.debug(
                             "Route API returned HTTP %d for %s", response.status, what
                         )
-                        return None
-                    return await response.json()
+                    return None
         except asyncio.TimeoutError:
             _LOGGER.debug("Route API timeout for %s", what)
         except Exception as err:
