@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
@@ -24,10 +25,20 @@ ROUTE_API_TIMEOUT = 5
 # 403 since 2026-10) and asks for a unique agent with a contact, batched
 # requests over http, and polite retry behaviour (hook-365/adsb-aircraft-tracker#7).
 # Identify ourselves on every call.
-ROUTE_API_USER_AGENT = (
-    "adsb-aircraft-tracker/{version} "
-    "(+https://github.com/hook-365/adsb-aircraft-tracker; anthony.hook3@gmail.com)"
-)
+# "<name>/<version> (+<repo>; <operator contact>)". The contact is the
+# operator's (options → "Route lookup contact"), never a hardcoded address:
+# every install must identify as its own operator.
+ROUTE_API_REPO = "https://github.com/hook-365/adsb-aircraft-tracker"
+
+
+def build_user_agent(version: str, contact: str = "") -> str:
+    """Return the User-Agent for adsb.im route lookups."""
+    contact = re.sub(r"[\r\n;()\"\\]", "", contact or "").strip()
+    if contact:
+        return f"adsb-aircraft-tracker/{version} (+{ROUTE_API_REPO}; {contact})"
+    return f"adsb-aircraft-tracker/{version} (+{ROUTE_API_REPO})"
+
+
 # After a refusal (403/429) or upstream error (5xx), stop asking for a while
 # instead of retrying on every poll.
 ROUTE_API_BACKOFF = timedelta(minutes=10)
@@ -89,12 +100,17 @@ class RouteInfo:
 class RouteClient:
     """Async client for fetching flight route data with TTL cache."""
 
-    def __init__(self, hass: HomeAssistant, version: str = "0") -> None:
-        """Initialize route client. `version` is the integration version, for the User-Agent."""
+    def __init__(self, hass: HomeAssistant, version: str = "0", contact: str = "") -> None:
+        """Initialize route client. `version` and `contact` go into the User-Agent."""
         self._hass = hass
         self._cache: dict[str, tuple[RouteInfo, datetime]] = {}
         self._blocked_until: datetime | None = None
-        self._user_agent = ROUTE_API_USER_AGENT.format(version=version)
+        self._user_agent = build_user_agent(version, contact)
+
+    @property
+    def user_agent(self) -> str:
+        """The User-Agent sent to adsb.im (for diagnostics/logging)."""
+        return self._user_agent
 
     def is_backing_off(self) -> bool:
         """True while a recent refusal/error has paused route lookups."""

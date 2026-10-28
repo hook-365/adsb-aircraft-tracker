@@ -72,11 +72,13 @@
         "description": "Configure how often data is updated and the tracking range for your ADSB feeder.\n\n💡 **Tip:** Lower update intervals provide more real-time data but use more system resources.",
         "data": {
           "update_interval": "⏱️ Data Refresh Rate (seconds)",
-          "distance_limit": "📍 Aircraft Range Limit"
+          "distance_limit": "📍 Aircraft Range Limit",
+          "route_api_contact": "✉️ Route lookup contact (optional)"
         },
         "data_description": {
           "update_interval": "How frequently to refresh aircraft data, in seconds. Recommended: 10 seconds for balance of real-time data vs system performance. Range: 5-300 seconds.",
-          "distance_limit": "Maximum tracking range. Units (miles/kilometers) depend on your Home Assistant unit system. Set to 0 for unlimited (all aircraft your feeder detects). Typical range: 50-200 miles or 80-320 km depending on your antenna setup."
+          "distance_limit": "Maximum tracking range. Units (miles/kilometers) depend on your Home Assistant unit system. Set to 0 for unlimited (all aircraft your feeder detects). Typical range: 50-200 miles or 80-320 km depending on your antenna setup.",
+          "route_api_contact": "Email address or URL sent to adsb.im in the User-Agent of flight-route lookups. adsb.im is a one-person hobby service and asks callers to identify themselves. Leave empty to send only the project URL."
         }
       },
       "notifications_settings": {

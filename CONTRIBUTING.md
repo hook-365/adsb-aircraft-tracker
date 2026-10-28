@@ -45,6 +45,8 @@ Thank you for your interest in contributing to the ADSB Aircraft Tracker Home As
 4. **Test thoroughly** with your Home Assistant setup — pull requests
    automatically run Hassfest and HACS validation, and both must pass
 5. **Update documentation** if needed (README.md, release notes)
+
+Releases: `scripts/release.sh X.Y.Z` is the only way the version changes — it writes `manifest.json` and `const.py` (`INTEGRATION_VERSION`) together, commits and tags; CI (`version-check`) fails if they ever differ. Never edit either by hand.
 6. **Submit a Pull Request** with:
    - Clear description of changes
    - Why the change is needed

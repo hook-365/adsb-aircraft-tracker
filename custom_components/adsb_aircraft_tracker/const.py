@@ -3,8 +3,11 @@ from datetime import timedelta
 
 DOMAIN = "adsb_aircraft_tracker"
 
-# Keep in sync with manifest.json
-INTEGRATION_VERSION = "1.6.2"  # keep in sync with manifest.json
+# Single source of truth for the version, together with manifest.json.
+# Home Assistant reads manifest.json; our code (device sw_version, the
+# route-lookup User-Agent, the card cache-buster) reads this constant.
+# Bump BOTH with scripts/release.sh X.Y.Z — CI fails if they differ.
+INTEGRATION_VERSION = "1.6.3"
 
 # tar1090-db (Mictronics) military aircraft database
 MILITARY_DB_URL = (
@@ -41,6 +44,9 @@ CONF_CLOSE_AIRCRAFT_ENABLED = "close_aircraft_enabled"
 CONF_CLOSE_AIRCRAFT_DISTANCE = "close_aircraft_distance"
 CONF_CLOSE_AIRCRAFT_ALTITUDE = "close_aircraft_altitude"
 CONF_EMERGENCY_NOTIFICATIONS = "emergency_notifications"
+# Contact (email or URL) sent to adsb.im in the User-Agent of route lookups.
+# They ask callers for one; empty = the project URL only, never the author's.
+CONF_ROUTE_API_CONTACT = "route_api_contact"
 
 # Default values
 DEFAULT_ADSB_PORT = 8085

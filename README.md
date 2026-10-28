@@ -103,6 +103,7 @@ After initial setup, click **CONFIGURE** on your integration to access advanced 
 - **External URL**: Custom ADSB website URL for notifications
 - **Update Interval**: Adjust data refresh frequency
 - **Distance Limit**: Set maximum tracking range
+- **Route lookup contact** (optional): email or URL sent to [adsb.im](https://adsb.im) in the User-Agent of flight-route lookups (`adsb-aircraft-tracker/<version> (+repo; contact)`). adsb.im is a one-person hobby service and asks callers to identify themselves; empty sends only the project URL.
 
 ## Dashboard Cards
 

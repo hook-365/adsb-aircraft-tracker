@@ -18,13 +18,13 @@ from .const import (
     DOMAIN,
     CONF_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
+    CONF_ROUTE_API_CONTACT,
     INTEGRATION_VERSION,
     MILITARY_DB_REFRESH_INTERVAL,
 )
 from .coordinator import ADSBDataUpdateCoordinator
 from .notify import ADSBNotificationManager
 from .database_updater import async_setup_database_services
-from homeassistant.loader import async_get_integration
 
 from .route_client import RouteClient
 from .state_client import StateClient
@@ -78,8 +78,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Create notification manager and route client
     notification_manager = ADSBNotificationManager(hass, coordinator, entry)
-    integration = await async_get_integration(hass, DOMAIN)
-    route_client = RouteClient(hass, version=str(integration.version or "0"))
+    route_client = RouteClient(
+        hass,
+        version=INTEGRATION_VERSION,
+        contact=entry.options.get(CONF_ROUTE_API_CONTACT, ""),
+    )
+    _LOGGER.debug("Route lookups identify as %r", route_client.user_agent)
     coordinator.route_client = route_client
     state_client = StateClient(hass)
 
