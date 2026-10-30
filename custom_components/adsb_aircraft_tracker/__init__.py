@@ -8,10 +8,13 @@ from datetime import timedelta
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.helpers.service import async_set_service_schema
+from homeassistant.helpers.service import (
+    async_register_admin_service,
+    async_set_service_schema,
+)
 import voluptuous as vol
 
 from .const import (
@@ -378,12 +381,14 @@ async def _async_setup_voice_services(hass: HomeAssistant) -> None:
             "action": action,
         }
 
+    # Writes into the config directory, so admins only
     if not hass.services.has_service(DOMAIN, "install_sentences"):
-        hass.services.async_register(
+        async_register_admin_service(
+            hass,
             DOMAIN,
             "install_sentences",
             install_sentences_service,
-            supports_response=True,
+            supports_response=SupportsResponse.OPTIONAL,
         )
 
 

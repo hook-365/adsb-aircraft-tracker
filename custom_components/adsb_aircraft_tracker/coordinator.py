@@ -87,6 +87,14 @@ class AircraftRegistry:
         return reg or None, type_code or None
 
 
+def _read_json_file(path: str) -> dict[str, Any] | None:
+    """Read and parse a JSON file; None if it does not exist. Runs in the executor."""
+    if not os.path.exists(path):
+        return None
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching ADSB aircraft data."""
 
@@ -140,35 +148,20 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         self.hass.async_create_task(self._async_load_military_database())
 
     async def _async_load_aircraft_types_db(self) -> None:
-        """Load aircraft types database from tar1090-db asynchronously."""
+        """Load the bundled tar1090-db aircraft types without blocking the event loop."""
+        db_path = os.path.join(os.path.dirname(__file__), "icao_aircraft_types.json")
         try:
-            import aiofiles
-            db_path = os.path.join(os.path.dirname(__file__), "icao_aircraft_types.json")
-            if os.path.exists(db_path):
-                async with aiofiles.open(db_path, "r", encoding="utf-8") as f:
-                    content = await f.read()
-                    self.aircraft_types_db = json.loads(content)
-                    _LOGGER.info("Loaded %d aircraft types from tar1090-db", len(self.aircraft_types_db))
-            else:
-                _LOGGER.warning("Aircraft types database not found at %s", db_path)
-                self.aircraft_types_db = {}
-        except ImportError:
-            # Fallback to sync loading if aiofiles not available
-            try:
-                db_path = os.path.join(os.path.dirname(__file__), "icao_aircraft_types.json")
-                if os.path.exists(db_path):
-                    with open(db_path, "r", encoding="utf-8") as f:
-                        self.aircraft_types_db = json.load(f)
-                        _LOGGER.info("Loaded %d aircraft types from tar1090-db (sync fallback)", len(self.aircraft_types_db))
-                else:
-                    _LOGGER.warning("Aircraft types database not found at %s", db_path)
-                    self.aircraft_types_db = {}
-            except Exception as err:
-                _LOGGER.error("Failed to load aircraft types database (sync fallback): %s", err)
-                self.aircraft_types_db = {}
+            db = await self.hass.async_add_executor_job(_read_json_file, db_path)
         except Exception as err:
             _LOGGER.error("Failed to load aircraft types database: %s", err)
             self.aircraft_types_db = {}
+            return
+        if db is None:
+            _LOGGER.warning("Aircraft types database not found at %s", db_path)
+            self.aircraft_types_db = {}
+            return
+        self.aircraft_types_db = db
+        _LOGGER.info("Loaded %d aircraft types from tar1090-db", len(self.aircraft_types_db))
 
     def get_aircraft_type_info(self, aircraft_type: str | None) -> dict[str, Any]:
         """Get detailed aircraft type information from tar1090-db."""

@@ -9,6 +9,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.service import async_register_admin_service
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,9 +88,10 @@ async def async_setup_database_services(hass: HomeAssistant) -> None:
             for entry in entries:
                 await hass.config_entries.async_reload(entry.entry_id)
 
-    # Register the service
-    hass.services.async_register(
+    # Overwrites a file under custom_components/ and reloads every entry, so admins only
+    async_register_admin_service(
+        hass,
         "adsb_aircraft_tracker",
         "update_aircraft_types_database",
-        update_aircraft_types_service
+        update_aircraft_types_service,
     )
