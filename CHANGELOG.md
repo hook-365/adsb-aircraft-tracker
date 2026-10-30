@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.6.6] - 2026-10-30
+
 ### Changed
 - **Logo says what the integration is.** The brand icon's subtitle read
   "ADSB Airplane Tracker"; it now reads "ADSB Aircraft Tracker", matching the
@@ -80,7 +82,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.6.5...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.6.6...HEAD
+[1.6.6]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.6
 [1.6.5]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.5
 [1.6.4]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.4
 [1.6.3]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.3

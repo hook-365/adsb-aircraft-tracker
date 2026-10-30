@@ -7,7 +7,7 @@ DOMAIN = "adsb_aircraft_tracker"
 # Home Assistant reads manifest.json; our code (device sw_version, the
 # route-lookup User-Agent, the card cache-buster) reads this constant.
 # Bump BOTH with scripts/release.sh X.Y.Z — CI fails if they differ.
-INTEGRATION_VERSION = "1.6.5"
+INTEGRATION_VERSION = "1.6.6"
 
 # tar1090-db (Mictronics) military aircraft database
 MILITARY_DB_URL = (
