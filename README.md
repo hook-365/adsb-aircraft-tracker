@@ -8,6 +8,12 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ![ADSB Aircraft Tracker dashboard cards: nearest aircraft with routes, closest aircraft detail, military alert and receiver stats](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/dashboard-cards.png)
 
+## What's New
+
+Every release lists its changes in [CHANGELOG.md](CHANGELOG.md), newest first.
+The same notes appear on the [GitHub release][releases] and in HACS when it
+offers you the update, so you can see what changed before you install it.
+
 ## Features
 
 📊 **Dashboard Cards** (built in, nothing to install)
