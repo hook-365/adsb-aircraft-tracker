@@ -10,6 +10,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- **Brand icon is readable on light themes.** The bundled icon was white
+  artwork on a transparent background, so it nearly vanished on light
+  backgrounds. `icon.png` / `icon@2x.png` are now dark slate, and the white
+  version ships as `dark_icon.png` / `dark_icon@2x.png`, which Home Assistant
+  picks automatically in dark mode.
+
 ## [1.6.6] - 2026-10-30
 
 ### Changed
