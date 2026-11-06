@@ -10,6 +10,14 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Alerts to several devices or a notify group.** Options → Notifications →
+  "Devices for alerts" is now a multi-select, and it lists notify groups
+  (`notify.family_alerts` style, from the `group` platform) as well as
+  mobile-app phones. Every alert goes to each selected service; a failing
+  one is logged and doesn't stop the others. Existing single-device setups
+  keep working unchanged.
+
 ## [1.7.0] - 2026-11-06
 
 ### Added

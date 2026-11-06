@@ -42,7 +42,7 @@ offers you the update, so you can see what changed before you install it.
 - Works with any readsb-style `aircraft.json` source (tar1090, readsb, dump1090-fa/SkyAware, or bridges from other receivers); the data path is auto-detected
 
 📱 **Smart Notifications**
-- Mobile app notifications for specific aircraft types
+- Mobile app notifications for specific aircraft types, to one phone, several, or a notify group
 - Low altitude aircraft alerts
 - Emergency squawk code notifications (7700/7600/7500)
 - Customizable external ADSB URL links
@@ -115,7 +115,7 @@ A local Flightradar24 receiver doesn't serve `aircraft.json` itself. Brian O'Her
 
 After initial setup, click **CONFIGURE** on your integration to access advanced options:
 
-- **Notification Device**: Select your mobile device for alerts
+- **Devices for alerts**: one or more notify services. Phones with the Home Assistant mobile app and any [notify groups](https://www.home-assistant.io/integrations/group/#notify-groups) you have defined are listed; every alert goes to all of them
 - **External URL**: Custom ADSB website URL for notifications
 - **Update Interval**: Adjust data refresh frequency
 - **Distance Limit**: Set maximum tracking range

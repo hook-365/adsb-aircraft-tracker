@@ -46,12 +46,24 @@ class ADSBNotificationManager:
         self._last_emergency_aircraft: set[tuple[str, str]] = set()
         
     @property
-    def notification_device(self) -> str | None:
-        """Get configured notification device."""
-        return (
+    def notification_devices(self) -> list[str]:
+        """Configured notify services (mobile devices and/or notify groups).
+
+        Stored as a list since 1.8.0; older entries hold a single string.
+        """
+        value = (
             self.config_entry.options.get(CONF_NOTIFICATION_DEVICE) or
             self.config_entry.data.get(CONF_NOTIFICATION_DEVICE)
         )
+        if isinstance(value, str):
+            return [value] if value else []
+        return [v for v in (value or []) if v]
+
+    @property
+    def notification_device(self) -> str | None:
+        """First configured notify service (kept for callers of the old name)."""
+        devices = self.notification_devices
+        return devices[0] if devices else None
     
     @property 
     def external_url(self) -> str:
@@ -112,7 +124,7 @@ class ADSBNotificationManager:
         The coordinator passes the just-fetched aircraft list; falls back to
         the last stored data if called without one.
         """
-        if not self.notification_device:
+        if not self.notification_devices:
             return
         if aircraft_list is None:
             if not self.coordinator.data:
@@ -316,8 +328,8 @@ class ADSBNotificationManager:
         priority: str = "normal",
         image: str | None = None,
     ) -> None:
-        """Send notification to configured device."""
-        if not self.notification_device:
+        """Send the notification to every configured notify service."""
+        if not self.notification_devices:
             return
             
         data = {
@@ -347,12 +359,9 @@ class ADSBNotificationManager:
             data["data"]["ttl"] = 0
             data["data"]["priority"] = "high"
         
-        try:
-            await self.hass.services.async_call(
-                "notify",
-                self.notification_device,
-                data,
-            )
-            _LOGGER.debug("Sent notification: %s", title)
-        except Exception as err:
-            _LOGGER.error("Failed to send notification: %s", err)
+        for service in self.notification_devices:
+            try:
+                await self.hass.services.async_call("notify", service, data)
+                _LOGGER.debug("Sent notification to notify.%s: %s", service, title)
+            except Exception as err:  # noqa: BLE001 - one bad target must not stop the others
+                _LOGGER.error("Failed to send notification to notify.%s: %s", service, err)

@@ -7,6 +7,7 @@ from typing import Any
 
 import aiohttp
 import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.const import CONF_HOST
@@ -154,6 +155,33 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     raise last_error
 
 
+
+# notify services that aren't a device or a group of devices
+_NOTIFY_SERVICE_SKIP = {"notify", "send_message", "persistent_notification"}
+
+
+def _notify_targets(hass: HomeAssistant) -> list[str]:
+    """Notify services to offer: mobile_app_* first, then groups and others."""
+    services = hass.services.async_services().get("notify", {})
+    names = [n for n in services if n not in _NOTIFY_SERVICE_SKIP]
+    return sorted(names, key=lambda n: (not n.startswith("mobile_app_"), n))
+
+
+def _as_list(value) -> list[str]:
+    """Stored notification target(s) as a list (older entries hold a string)."""
+    if isinstance(value, str):
+        return [value] if value else []
+    return [v for v in (value or []) if v]
+
+
+def _notify_selector(hass: HomeAssistant, current):
+    """Multi-select of notify services; keeps a stored name even if it's gone."""
+    selected = _as_list(current)
+    options = {name: f"notify.{name}" for name in _notify_targets(hass)}
+    for name in selected:
+        options.setdefault(name, f"notify.{name} (not currently available)")
+    return vol.Optional(CONF_NOTIFICATION_DEVICE, default=selected), cv.multi_select(options)
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for ADSB Aircraft Tracker."""
 
@@ -263,13 +291,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data=final_data,
             )
 
-        # Get notification devices
-        notification_devices = self._get_notification_devices()
+        _notify_key, _notify_sel = _notify_selector(self.hass, [])
 
         # Create simplified schema focusing on key notification settings
         notifications_schema = vol.Schema(
             {
-                vol.Optional(CONF_NOTIFICATION_DEVICE, default=""): vol.In([""] + notification_devices),
+                _notify_key: _notify_sel,
                 vol.Optional(CONF_EXTERNAL_URL, default=""): str,
                 vol.Optional(CONF_MILITARY_NOTIFICATIONS, default=DEFAULT_MILITARY_NOTIFICATIONS): bool,
                 vol.Optional(CONF_EMERGENCY_NOTIFICATIONS, default=DEFAULT_EMERGENCY_NOTIFICATIONS): bool,
@@ -283,18 +310,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-    def _get_notification_devices(self) -> list[str]:
-        """Get available mobile app notification devices."""
-        devices = []
-        
-        # Look for mobile_app services
-        for domain, services in self.hass.services.async_services().items():
-            if domain == "notify":
-                for service_name in services:
-                    if service_name.startswith("mobile_app_"):
-                        devices.append(service_name)
-        
-        return sorted(devices)
 
 
 class CannotConnect(Exception):
@@ -428,11 +443,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         current_data = self.config_entry.data
         current_options = self.config_entry.options
 
-        # Get notification devices
-        notification_devices = self._get_notification_devices()
-
         # Get current values for display
-        current_device = current_options.get(CONF_NOTIFICATION_DEVICE, "")
+        current_device = current_options.get(CONF_NOTIFICATION_DEVICE, current_data.get(CONF_NOTIFICATION_DEVICE, []))
+        _notify_key, _notify_sel = _notify_selector(self.hass, current_device)
         current_url = current_options.get(CONF_EXTERNAL_URL, "")
 
         # Get current notification settings
@@ -449,7 +462,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         notifications_schema = vol.Schema(
             {
-                vol.Optional(CONF_NOTIFICATION_DEVICE, default=current_device): vol.In([""] + notification_devices),
+                _notify_key: _notify_sel,
                 vol.Optional(CONF_EXTERNAL_URL, default=current_url): str,
                 vol.Optional(CONF_MILITARY_NOTIFICATIONS, default=current_military): bool,
                 vol.Optional(CONF_CLOSE_AIRCRAFT_ENABLED, default=current_close_enabled): bool,
@@ -465,15 +478,3 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    def _get_notification_devices(self) -> list[str]:
-        """Get available mobile app notification devices."""
-        devices = []
-        
-        # Look for mobile_app services
-        for domain, services in self.hass.services.async_services().items():
-            if domain == "notify":
-                for service_name in services:
-                    if service_name.startswith("mobile_app_"):
-                        devices.append(service_name)
-        
-        return sorted(devices)

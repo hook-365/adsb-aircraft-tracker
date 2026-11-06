@@ -30,14 +30,14 @@
         "title": "Configure Key Notifications",
         "description": "Set up the most important alerts for your ADSB tracker. You can configure additional settings later in the integration options.",
         "data": {
-          "notification_device": "📱 Mobile Device for Alerts",
+          "notification_device": "📱 Devices for alerts",
           "external_url": "🗺️ External ADSB Website",
           "military_notifications": "🪖 Military Aircraft Alerts",
           "emergency_notifications": "🚨 Emergency Squawk Alerts",
           "close_aircraft_enabled": "✈️ Close Aircraft Alerts"
         },
         "data_description": {
-          "notification_device": "Select your mobile device to receive aircraft alerts. Leave empty to disable notifications. Only shows devices with the Home Assistant mobile app installed.",
+          "notification_device": "Pick one or more notify services: phones with the Home Assistant mobile app, and any notify groups you have defined. Every alert goes to all of them. Leave empty to disable notifications.",
           "external_url": "Website URL to open when tapping notification alerts. Defaults to your local ADSB feeder; a public tracking site can be used instead.",
           "military_notifications": "Get notified when military aircraft are detected nearby. Uses verified database with 16,000+ confirmed military aircraft to prevent false positives. Perfect for aviation enthusiasts and plane spotters.",
           "emergency_notifications": "Receive immediate alerts for aviation emergency codes: 7700 (general emergency), 7600 (radio failure), 7500 (hijack). These are critical aviation safety signals that are rare but important to monitor.",
@@ -87,7 +87,7 @@
         "title": "Notifications & Alert Settings",
         "description": "Configure aircraft alerts and notifications. Fine-tune which events trigger notifications and how they're delivered.\n\n🔔 **Note:** You need the Home Assistant mobile app installed to receive notifications.",
         "data": {
-          "notification_device": "📱 Mobile Device for Alerts",
+          "notification_device": "📱 Devices for alerts",
           "external_url": "🗺️ External ADSB Website",
           "military_notifications": "🪖 Military Aircraft Alerts",
           "close_aircraft_enabled": "✈️ Close Aircraft Alerts",
@@ -96,7 +96,7 @@
           "emergency_notifications": "🚨 Emergency Squawk Alerts"
         },
         "data_description": {
-          "notification_device": "Select your mobile device to receive aircraft alerts. Leave empty to disable notifications. Only shows devices with the Home Assistant mobile app installed.",
+          "notification_device": "Pick one or more notify services: phones with the Home Assistant mobile app, and any notify groups you have defined. Every alert goes to all of them. Leave empty to disable notifications.",
           "external_url": "Website URL to open when tapping notification alerts. Defaults to your local ADSB feeder; a public tracking site can be used instead.",
           "military_notifications": "Get notified when military aircraft are detected nearby. Uses verified database with 16,000+ confirmed military aircraft to prevent false positives. Perfect for aviation enthusiasts and plane spotters.",
           "close_aircraft_enabled": "Receive alerts when aircraft pass very close overhead or at low altitude. Great for spotting interesting aircraft in your immediate area and monitoring air traffic patterns.",
