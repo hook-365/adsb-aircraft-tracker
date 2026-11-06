@@ -10,6 +10,15 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ## What's New
 
+**1.7.0 — Aircraft photos.** The cards now show a picture of the airframe
+from [planespotters.net](https://www.planespotters.net): a photo banner on
+the closest-aircraft card, a thumbnail per row on the nearest-aircraft and
+military cards, and the picture in military, low-overhead and emergency
+notifications. It's on by default with nothing to configure; each card has
+a **Photo** style in its editor. See [Photos on the cards](#photos-on-the-cards).
+
+![Closest-aircraft card with a photo banner, nearest-aircraft list with thumbnails, and the same cards with photos off](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/card-photos.png)
+
 Every release lists its changes in [CHANGELOG.md](CHANGELOG.md), newest first.
 The same notes appear on the [GitHub release][releases] and in HACS when it
 offers you the update, so you can see what changed before you install it.
@@ -151,7 +160,36 @@ aircraft without a photo (most GA traffic) fall back to the airplane icon,
 so mixed lists stay aligned. Every photo credits the photographer and
 links to its planespotters.net page.
 
-![Closest-aircraft card with a photo banner, nearest-aircraft list with thumbnails, and the same cards with photos off](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/card-photos.png)
+To add one from the UI: edit a dashboard → **Add card** → search **ADSB** →
+pick a card. The preview already shows the photo, and the **Photo** dropdown
+in the editor switches the style. In YAML, this is the whole "photo
+dashboard" from the picture above (a closest-aircraft banner with the
+nearest five under it):
+
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:adsb-closest-aircraft-card
+    photos: banner
+  - type: custom:adsb-aircraft-tracker-card
+    count: 5
+    photos: thumbnail
+```
+
+Photos are also available to your own cards and automations as sensor
+attributes (`photo_thumbnail`, `photo_large`, `photo_link`,
+`photo_photographer`). A plain Markdown card, no extras needed:
+
+```yaml
+type: markdown
+content: >-
+  {% set a = states.sensor.adsb_closest_aircraft.attributes %}
+  {% if a.photo_large %}
+  ![{{ a.flight or a.registration }}]({{ a.photo_large }})
+
+  [Photo © {{ a.photo_photographer }} · planespotters.net]({{ a.photo_link }})
+  {% else %}No photo for {{ a.flight or a.registration or 'the closest aircraft' }}.{% endif %}
+```
 
 ## Voice / Assist Support
 

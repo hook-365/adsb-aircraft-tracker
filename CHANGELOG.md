@@ -27,7 +27,9 @@ versions follow [Semantic Versioning](https://semver.org/).
   `none`; the nearest-aircraft and military cards take `thumbnail`
   (default) or `none`. Small photos keep the altitude color on their left
   edge and fall back to the airplane icon when there is no photo. Military
-  rows in the details sensor carry the photo fields too.
+  rows in the details sensor carry the photo fields too. Cards added from
+  the **Add card** picker come with the photo option filled in, and the
+  picker descriptions mention photos.
 
 ### Fixed
 - **Card script cache-busting.** The card URL now carries a content hash as

@@ -226,7 +226,7 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
   `;
 
   static getStubConfig(hass) {
-    return { ...super.getStubConfig(hass), count: 5 };
+    return { ...super.getStubConfig(hass), count: 5, photos: "thumbnail" };
   }
 
   getCardSize() {
@@ -286,6 +286,10 @@ class AdsbClosestAircraftCard extends AdsbBaseCard {
   static defaultTitle = "Closest aircraft";
   static extraSchema = [PHOTO_SCHEMA(PHOTO_BANNER_OPTIONS)];
   static extraLabels = { photos: "Photo" };
+
+  static getStubConfig(hass) {
+    return { ...super.getStubConfig(hass), photos: "banner" };
+  }
   static style = `
     .hero .thumb { width: 96px; height: 64px; }
     .photo { margin: 0 16px 10px; border-radius: 12px; overflow: hidden; background: var(--secondary-background-color); }
@@ -374,6 +378,11 @@ class AdsbMilitaryCard extends AdsbBaseCard {
   static defaultTitle = "Military aircraft";
   static extraSchema = [PHOTO_SCHEMA(PHOTO_THUMB_OPTIONS)];
   static extraLabels = { photos: "Photos" };
+
+  static getStubConfig(hass) {
+    return { ...super.getStubConfig(hass), photos: "thumbnail" };
+  }
+
   static style = `
     .row .thumb { align-self: center; }
     .state { display: flex; gap: 14px; align-items: center; padding: 16px; }
@@ -475,11 +484,11 @@ class AdsbStatsCard extends AdsbBaseCard {
 
 const CARDS = [
   ["adsb-aircraft-tracker-card", AdsbAircraftTrackerCard, "ADSB Aircraft Tracker",
-    "Nearest aircraft with routes, altitude and speed, plus a military flag."],
+    "Nearest aircraft with photo thumbnails, routes, altitude and speed, plus a military flag."],
   ["adsb-closest-aircraft-card", AdsbClosestAircraftCard, "ADSB Closest Aircraft",
-    "The closest aircraft in detail: type, operator, route, altitude trend and heading."],
+    "The closest aircraft in detail: photo, type, operator, route, altitude trend and heading."],
   ["adsb-military-card", AdsbMilitaryCard, "ADSB Military Alert",
-    "All-clear when quiet; lists military aircraft when any are detected."],
+    "All-clear when quiet; lists military aircraft, with photos, when any are detected."],
   ["adsb-stats-card", AdsbStatsCard, "ADSB Stats",
     "Tracked aircraft, closest distance, military count and database health."],
 ];
