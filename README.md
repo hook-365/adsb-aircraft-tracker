@@ -26,7 +26,7 @@ offers you the update, so you can see what changed before you install it.
 ## Features
 
 📊 **Dashboard Cards** (built in, nothing to install)
-- Four cards in the dashboard **Add card** picker: nearest aircraft, closest aircraft detail, military alert, receiver stats
+- Four ready-made cards in the dashboard **Add card** picker (live preview, one click): nearest aircraft, closest aircraft detail, military alert, receiver stats
 - Routes, altitude coloring, climb/descent and heading at a glance
 - A photo of the airframe from [planespotters.net](https://www.planespotters.net) on the closest-aircraft card, thumbnails in the list, and the picture in notifications (nearest and military aircraft, cached a day, credited)
 - Find your tracker's entities automatically, with a visual editor, and work with multiple feeders
@@ -124,7 +124,9 @@ After initial setup, click **CONFIGURE** on your integration to access advanced 
 
 ## Dashboard Cards
 
-The integration ships four dashboard cards. There's nothing to install: they load automatically with the integration. Edit a dashboard → **Add card** → search **ADSB**.
+The integration ships four dashboard cards. There's nothing to install: they load automatically with the integration. Edit a dashboard → **Add card** → **By card** tab → search **ADSB**. The picker previews each card with your live traffic, photos included; pick one and it's done.
+
+![Home Assistant's Add card picker showing the four ADSB cards with live previews and aircraft photos](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/card-picker.png)
 
 | Card | Shows |
 |------|-------|
@@ -160,9 +162,9 @@ aircraft without a photo (most GA traffic) fall back to the airplane icon,
 so mixed lists stay aligned. Every photo credits the photographer and
 links to its planespotters.net page.
 
-To add one from the UI: edit a dashboard → **Add card** → search **ADSB** →
-pick a card. The preview already shows the photo, and the **Photo** dropdown
-in the editor switches the style. In YAML, this is the whole "photo
+To add one from the UI: edit a dashboard → **Add card** → **By card** →
+search **ADSB** → pick a card. The preview already shows the photo, and the
+**Photo** dropdown in the editor switches the style. In YAML, this is the whole "photo
 dashboard" from the picture above (a closest-aircraft banner with the
 nearest five under it):
 
