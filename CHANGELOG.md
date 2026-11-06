@@ -10,6 +10,19 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Aircraft photos.** The closest-aircraft card shows a photo of the
+  airframe, the nearest-aircraft list shows a thumbnail per row, and
+  military, low-overhead and emergency notifications carry the picture.
+  Photos come from [planespotters.net](https://www.planespotters.net)'s
+  public API: one small request per newly seen airframe, nearest five and
+  military only, cached for 24 hours (including "no photo", common for GA
+  aircraft), with the same polite User-Agent and backoff as route lookups.
+  Photographer credit and a link to the photo page are shown, as their
+  terms ask. Sensor attributes gain `photo_thumbnail`, `photo_large`,
+  `photo_link` and `photo_photographer`. Options → Basic settings →
+  "Aircraft photos" turns it off (on by default).
+
 ## [1.6.7] - 2026-11-05
 
 ### Changed

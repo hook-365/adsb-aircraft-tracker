@@ -130,6 +130,9 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
 
         # Set by __init__ after setup; routes fill the route_* attributes
         self.route_client = None
+        # Set by __init__ after setup (None = photos disabled); fills photo_*
+        self.photo_client = None
+        self._photo_lookup_running = False
         self._route_lookup_running = False
         # When the current collection window ends (None = no callsigns waiting)
         self._route_batch_due: datetime | None = None
@@ -335,6 +338,7 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         processed_aircraft.sort(key=lambda x: x.get("distance_mi") if x.get("distance_mi") is not None else 999)
 
         self._attach_routes(processed_aircraft)
+        self._attach_photos(processed_aircraft)
 
         result = {
             "aircraft": processed_aircraft,
@@ -429,6 +433,55 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
             # Apply to the current data right away instead of waiting for
             # the next poll (failed callsigns wait for that poll to retry)
             self._attach_routes(self.data["aircraft"], lookup=False)
+            self.async_update_listeners()
+
+    # Photos are looked up only for aircraft the cards and notifications
+    # can show: the nearest few plus anything military.
+    PHOTO_LOOKUP_NEAREST = 5
+
+    def _attach_photos(
+        self, aircraft_list: list[dict[str, Any]], lookup: bool = True
+    ) -> None:
+        """Add cached planespotters.net photos; look up new ones in the background.
+
+        Every aircraft gets whatever is cached (valid or "no photo"). Lookups
+        are limited to the nearest PHOTO_LOOKUP_NEAREST and any military
+        aircraft, one background batch at a time, cached 24 hours either way.
+        """
+        if self.photo_client is None:
+            return
+        for aircraft in aircraft_list:
+            photo = self.photo_client.get_cached(aircraft.get("hex"))
+            if photo is not None and photo.valid:
+                aircraft["photo_thumbnail"] = photo.thumbnail
+                aircraft["photo_large"] = photo.large
+                aircraft["photo_link"] = photo.link
+                aircraft["photo_photographer"] = photo.photographer
+
+        if not lookup or self._photo_lookup_running or self.photo_client.is_backing_off():
+            return
+        ranked = [a for a in aircraft_list if a.get("distance_mi") is not None]
+        candidates = ranked[: self.PHOTO_LOOKUP_NEAREST] + self.detect_military_aircraft(aircraft_list)
+        uncached = []
+        for aircraft in candidates:
+            hex_code = aircraft.get("hex")
+            if hex_code and hex_code not in uncached and self.photo_client.get_cached(hex_code) is None:
+                uncached.append(hex_code)
+        if not uncached:
+            return
+        self._photo_lookup_running = True
+        self.hass.async_create_background_task(
+            self._async_lookup_photos(uncached), f"{DOMAIN} photo lookup"
+        )
+
+    async def _async_lookup_photos(self, hexes: list[str]) -> None:
+        """Fetch photos in the background, then refresh entities with them."""
+        try:
+            photos = await self.photo_client.async_get_photos(hexes)
+        finally:
+            self._photo_lookup_running = False
+        if any(photo.valid for photo in photos.values()) and self.data:
+            self._attach_photos(self.data["aircraft"], lookup=False)
             self.async_update_listeners()
 
     def _process_aircraft(self, plane: dict[str, Any]) -> dict[str, Any]:

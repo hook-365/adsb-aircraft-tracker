@@ -19,6 +19,7 @@ offers you the update, so you can see what changed before you install it.
 📊 **Dashboard Cards** (built in, nothing to install)
 - Four cards in the dashboard **Add card** picker: nearest aircraft, closest aircraft detail, military alert, receiver stats
 - Routes, altitude coloring, climb/descent and heading at a glance
+- A photo of the airframe from [planespotters.net](https://www.planespotters.net) on the closest-aircraft card, thumbnails in the list, and the picture in notifications (nearest and military aircraft, cached a day, credited)
 - Find your tracker's entities automatically, with a visual editor, and work with multiple feeders
 
 🛩️ **Aircraft Tracking**
@@ -109,6 +110,7 @@ After initial setup, click **CONFIGURE** on your integration to access advanced 
 - **External URL**: Custom ADSB website URL for notifications
 - **Update Interval**: Adjust data refresh frequency
 - **Distance Limit**: Set maximum tracking range
+- **Aircraft photos** (default on): look up a photo of each nearby or military airframe on [planespotters.net](https://www.planespotters.net) for the cards and notifications. One request per newly seen airframe, nearest five plus military only, cached 24 hours either way; photographer credit and a link to the photo page are shown, as their API terms ask. The route lookup contact below is sent in the User-Agent here too.
 - **Route lookup contact** (optional): email or URL sent to [adsb.im](https://adsb.im) in the User-Agent of flight-route lookups (`adsb-aircraft-tracker/<version> (+repo; contact)`). adsb.im is a one-person hobby service and asks callers to identify themselves; empty sends only the project URL.
 
 ## Dashboard Cards
@@ -118,7 +120,7 @@ The integration ships four dashboard cards. There's nothing to install: they loa
 | Card | Shows |
 |------|-------|
 | **ADSB Aircraft Tracker** (`custom:adsb-aircraft-tracker-card`) | The nearest 1–5 aircraft: callsign, tail, route, distance, altitude, speed, colored by altitude, with a military flag |
-| **ADSB Closest Aircraft** (`custom:adsb-closest-aircraft-card`) | The closest aircraft in detail: type, operator, route with city names, distance, altitude with climb/descent, speed, heading, emergency squawks |
+| **ADSB Closest Aircraft** (`custom:adsb-closest-aircraft-card`) | The closest aircraft in detail: photo, type, operator, route with city names, distance, altitude with climb/descent, speed, heading, emergency squawks |
 | **ADSB Military Alert** (`custom:adsb-military-card`) | A green "all clear", or a red alert listing each military aircraft detected |
 | **ADSB Stats** (`custom:adsb-stats-card`) | Tracked aircraft, closest distance, military count and military-database health |
 
@@ -208,6 +210,7 @@ All voice responses are formatted for natural text-to-speech pronunciation:
 - Voice queries that match a sentence go directly through intent recognition, without the LLM conversation agent
 - With an LLM conversation agent (Home Assistant 2026.8+), the same intents are also offered to the model as Assist API tools, with descriptions written to help it pick the right one. Answers are identical to the sentence path. HA stopped exposing intents to LLMs automatically in 2026.8, so this needs version 1.5.0 or newer of this integration
 - Flight route data (origin/destination) is fetched from [adsb.im](https://adsb.im) and cached for 4 hours
+- Aircraft photos are fetched from [planespotters.net](https://www.planespotters.net) (nearest five + military) and cached for 24 hours
 - Aircraft type filtering uses ICAO engine type, category, and description keyword matching
 - Military detection uses the tar1090-db verified database (same as notification system)
 - Can also be triggered from **Developer Tools → Conversation** for testing
@@ -225,12 +228,12 @@ The integration creates the following entities:
 
 #### `sensor.adsb_closest_aircraft`
 - **Value**: Closest aircraft identifier (flight number, tail, or hex)
-- **Attributes**: Complete details of the nearest aircraft (distance, altitude, speed, heading, type, operator, etc.), plus its route (`route_origin`, `route_origin_name`, `route_destination`, `route_destination_name`) when [adsb.im](https://adsb.im) knows it. Routes are looked up for every aircraft with a callsign: new callsigns are batched into one request per poll and cached for 4 hours. Private/GA flights usually have no route
+- **Attributes**: Complete details of the nearest aircraft (distance, altitude, speed, heading, type, operator, etc.), plus its route (`route_origin`, `route_origin_name`, `route_destination`, `route_destination_name`) when [adsb.im](https://adsb.im) knows it, and its photo (`photo_thumbnail`, `photo_large`, `photo_link`, `photo_photographer`) when [planespotters.net](https://www.planespotters.net) has one. Routes are looked up for every aircraft with a callsign: new callsigns are batched into one request per poll and cached for 4 hours. Private/GA flights usually have no route
 - **Use**: Track the aircraft closest to your location
 
 #### `sensor.adsb_nearest_5_aircraft`
 - **Value**: Summary count (e.g., "5 aircraft detected")
-- **Attributes**: `aircraft_1` through `aircraft_5` with full details for each, including route fields
+- **Attributes**: `aircraft_1` through `aircraft_5` with full details for each, including route and photo fields
 - **Use**: Display the closest aircraft in cards/dashboards
 - *Note: installs that predate the top-5 expansion keep their original entity id (e.g. `sensor.adsb_nearest_3_aircraft`) — Home Assistant never renames existing entities*
 

@@ -228,6 +228,7 @@ class ADSBNotificationManager:
             message=message,
             notification_icon="mdi:shield-airplane",
             color="green",
+            image=aircraft.get("photo_large"),
         )
     
     async def _send_close_aircraft_notification(self, aircraft: dict[str, Any]) -> None:
@@ -276,6 +277,7 @@ class ADSBNotificationManager:
             message=message,
             notification_icon="mdi:airplane-alert",
             color="red",
+            image=aircraft.get("photo_large"),
         )
     
     async def _send_emergency_notification(self, aircraft: dict[str, Any]) -> None:
@@ -302,6 +304,7 @@ class ADSBNotificationManager:
             notification_icon="mdi:alert",
             color="red",
             priority="high",
+            image=aircraft.get("photo_large"),
         )
     
     async def _send_notification(
@@ -311,6 +314,7 @@ class ADSBNotificationManager:
         notification_icon: str = "mdi:airplane",
         color: str = "blue",
         priority: str = "normal",
+        image: str | None = None,
     ) -> None:
         """Send notification to configured device."""
         if not self.notification_device:
@@ -332,6 +336,10 @@ class ADSBNotificationManager:
                 ],
             }
         }
+
+        if image:
+            # Shown by the mobile apps as the expanded notification picture
+            data["data"]["image"] = image
 
         _LOGGER.debug("Notification data with external_url %s: %s", self.external_url, data)
         

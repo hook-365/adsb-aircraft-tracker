@@ -22,6 +22,8 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
     CONF_ROUTE_API_CONTACT,
+    CONF_AIRCRAFT_PHOTOS,
+    DEFAULT_AIRCRAFT_PHOTOS,
     INTEGRATION_VERSION,
     MILITARY_DB_REFRESH_INTERVAL,
 )
@@ -29,6 +31,7 @@ from .coordinator import ADSBDataUpdateCoordinator
 from .notify import ADSBNotificationManager
 from .database_updater import async_setup_database_services
 
+from .photo_client import PhotoClient
 from .route_client import RouteClient
 from .state_client import StateClient
 from .intent import async_remove_intents, async_setup_intents
@@ -88,6 +91,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     _LOGGER.debug("Route lookups identify as %r", route_client.user_agent)
     coordinator.route_client = route_client
+    if entry.options.get(CONF_AIRCRAFT_PHOTOS, DEFAULT_AIRCRAFT_PHOTOS):
+        coordinator.photo_client = PhotoClient(
+            hass,
+            version=INTEGRATION_VERSION,
+            contact=entry.options.get(CONF_ROUTE_API_CONTACT, ""),
+        )
     state_client = StateClient(hass)
 
     # Store coordinator, notification manager, route client, state client in hass data

@@ -81,7 +81,15 @@ const BASE_STYLE = `
   ha-icon.low { color: var(--deep-orange-color, #ff5722); }
   ha-icon.ground { color: var(--disabled-text-color); }
   .route { font-weight: 600; color: var(--primary-color); white-space: nowrap; }
+  .credit { font-size: 0.75em; color: var(--secondary-text-color); }
+  .credit a { color: inherit; text-decoration: none; }
+  .credit a:hover { text-decoration: underline; }
 `;
+
+// planespotters.net asks for photographer credit and a link to the photo page
+const photoCredit = (a) => a.photo_link
+  ? `<div class="credit"><a href="${esc(a.photo_link)}" target="_blank" rel="noopener">Photo${a.photo_photographer ? ` © ${esc(a.photo_photographer)}` : ""} · planespotters.net</a></div>`
+  : "";
 
 /** Shared plumbing: config, entity discovery, change detection, more-info. */
 class AdsbBaseCard extends HTMLElement {
@@ -132,6 +140,10 @@ class AdsbBaseCard extends HTMLElement {
       ? this.renderBody(title)
       : `<ha-card header="${esc(title)}"><div class="empty">No ADSB Aircraft Tracker entities found${this._config.device_id ? " for the selected tracker" : ""}.</div></ha-card>`;
     this.shadowRoot.innerHTML = `${body}<style>${BASE_STYLE}${this.constructor.style || ""}</style>`;
+    // Links (photo credits) open themselves, not the entity's more-info
+    this.shadowRoot.querySelectorAll("a").forEach((el) => {
+      el.addEventListener("click", (ev) => ev.stopPropagation());
+    });
     this.shadowRoot.querySelectorAll("[data-entity]").forEach((el) => {
       el.addEventListener("click", (ev) => {
         ev.stopPropagation();
@@ -178,6 +190,10 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
     .row:hover { background: var(--secondary-background-color); }
     .row:last-child { padding-bottom: 14px; }
     .row ha-icon { flex: none; --mdc-icon-size: 22px; }
+    .thumb { flex: none; width: 48px; height: 32px; object-fit: cover; border-radius: 6px; border-left: 3px solid var(--disabled-text-color); background: var(--secondary-background-color); }
+    .thumb.high { border-color: var(--blue-color, #2196f3); }
+    .thumb.mid { border-color: var(--orange-color, #ff9800); }
+    .thumb.low { border-color: var(--deep-orange-color, #ff5722); }
     .main { min-width: 0; flex: 1; }
     .line1 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .ident { font-weight: 600; }
@@ -216,7 +232,9 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
       const desc = a.description && a.description !== "Unknown aircraft" ? a.description : "";
       rows.push(`
         <div class="row" data-entity="${esc(this._ids.top_aircraft)}">
-          <ha-icon class="${altBand(a)}" icon="mdi:airplane"></ha-icon>
+          ${a.photo_thumbnail
+            ? `<img class="thumb ${altBand(a)}" src="${esc(a.photo_thumbnail)}" alt="" loading="lazy" title="${esc(a.photo_photographer ? `Photo © ${a.photo_photographer} · planespotters.net` : "planespotters.net")}">`
+            : `<ha-icon class="${altBand(a)}" icon="mdi:airplane"></ha-icon>`}
           <div class="main">
             <div class="line1"><span class="ident">${esc(ident)}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ""}${route}</div>
             <div class="line2">${facts}${desc ? ` · ${esc(desc)}` : ""}</div>
@@ -245,6 +263,9 @@ class AdsbClosestAircraftCard extends AdsbBaseCard {
   static watch = ["closest_aircraft"];
   static defaultTitle = "Closest aircraft";
   static style = `
+    .photo { margin: 0 16px 10px; border-radius: 12px; overflow: hidden; background: var(--secondary-background-color); }
+    .photo img { display: block; width: 100%; max-height: 220px; object-fit: cover; }
+    .photo .credit { padding: 4px 10px; }
     .hero { display: flex; gap: 14px; align-items: center; padding: 0 16px 8px; }
     .hero ha-icon { --mdc-icon-size: 44px; flex: none; }
     .ident { font-size: 1.6em; font-weight: 600; line-height: 1.2; }
@@ -292,9 +313,12 @@ class AdsbClosestAircraftCard extends AdsbBaseCard {
     const emergency = a.emergency && a.emergency !== "none"
       ? `<div class="emergency">Emergency: ${esc(a.emergency)}${a.squawk ? ` (squawk ${esc(a.squawk)})` : ""}</div>` : "";
     const stat = (label, value) => `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`;
+    const photo = a.photo_large
+      ? `<div class="photo"><img src="${esc(a.photo_large)}" alt="${esc(ident)}" loading="lazy">${photoCredit(a)}</div>` : "";
     return `
       <ha-card data-entity="${esc(this._ids.closest_aircraft)}">
         <div class="header"><div class="title">${esc(title)}</div></div>
+        ${photo}
         <div class="hero">
           <ha-icon class="${altBand(a)}" icon="mdi:airplane"></ha-icon>
           <div>

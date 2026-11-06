@@ -47,6 +47,8 @@ CONF_EMERGENCY_NOTIFICATIONS = "emergency_notifications"
 # Contact (email or URL) sent to adsb.im in the User-Agent of route lookups.
 # They ask callers for one; empty = the project URL only, never the author's.
 CONF_ROUTE_API_CONTACT = "route_api_contact"
+# Aircraft photos from planespotters.net (nearest aircraft + military)
+CONF_AIRCRAFT_PHOTOS = "aircraft_photos"
 
 # Default values
 DEFAULT_ADSB_PORT = 8085
@@ -71,6 +73,7 @@ DEFAULT_CLOSE_AIRCRAFT_ENABLED = True
 DEFAULT_CLOSE_AIRCRAFT_DISTANCE = 2.0
 DEFAULT_CLOSE_AIRCRAFT_ALTITUDE = 3000
 DEFAULT_EMERGENCY_NOTIFICATIONS = True
+DEFAULT_AIRCRAFT_PHOTOS = True
 
 # ICAO 3-letter airline codes to spoken names for TTS
 AIRLINE_CODE_MAP = {

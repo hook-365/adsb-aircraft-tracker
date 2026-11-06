@@ -29,6 +29,8 @@ from .const import (
     CONF_CLOSE_AIRCRAFT_ALTITUDE,
     CONF_EMERGENCY_NOTIFICATIONS,
     CONF_ROUTE_API_CONTACT,
+    CONF_AIRCRAFT_PHOTOS,
+    DEFAULT_AIRCRAFT_PHOTOS,
     DEFAULT_ADSB_PORT,
     ADSB_PATH_CANDIDATES,
     DEFAULT_UPDATE_INTERVAL,
@@ -377,6 +379,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         current_update = current_options.get(CONF_UPDATE_INTERVAL, current_data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
         current_distance = current_options.get(CONF_DISTANCE_LIMIT, current_data.get(CONF_DISTANCE_LIMIT, DEFAULT_DISTANCE_LIMIT))
         current_contact = current_options.get(CONF_ROUTE_API_CONTACT, "")
+        current_photos = current_options.get(CONF_AIRCRAFT_PHOTOS, DEFAULT_AIRCRAFT_PHOTOS)
 
         # Determine distance unit based on Home Assistant's unit system
         distance_unit = "miles"
@@ -393,6 +396,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(CONF_UPDATE_INTERVAL, default=current_update): vol.All(vol.Coerce(int), vol.Range(min=5, max=300)),
                 vol.Optional(CONF_DISTANCE_LIMIT, default=current_distance): vol.All(vol.Coerce(int), vol.Range(min=0, max=max_distance)),
                 vol.Optional(CONF_ROUTE_API_CONTACT, description={"suggested_value": current_contact}): str,
+                vol.Optional(CONF_AIRCRAFT_PHOTOS, default=current_photos): bool,
             }
         )
 

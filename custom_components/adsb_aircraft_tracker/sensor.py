@@ -123,6 +123,10 @@ class ADSBClosestAircraftSensor(ADSBSensorBase):
             "route_origin_name": aircraft.get("route_origin_name"),
             "route_destination": aircraft.get("route_destination"),
             "route_destination_name": aircraft.get("route_destination_name"),
+            "photo_thumbnail": aircraft.get("photo_thumbnail"),
+            "photo_large": aircraft.get("photo_large"),
+            "photo_link": aircraft.get("photo_link"),
+            "photo_photographer": aircraft.get("photo_photographer"),
         }
     
     def _get_closest_aircraft(self) -> dict[str, Any] | None:
@@ -196,6 +200,10 @@ class ADSBTopAircraftSensor(ADSBSensorBase):
                 "route_origin_name": aircraft.get("route_origin_name"),
                 "route_destination": aircraft.get("route_destination"),
                 "route_destination_name": aircraft.get("route_destination_name"),
+                "photo_thumbnail": aircraft.get("photo_thumbnail"),
+                "photo_large": aircraft.get("photo_large"),
+                "photo_link": aircraft.get("photo_link"),
+                "photo_photographer": aircraft.get("photo_photographer"),
             }
 
         return attributes
@@ -353,6 +361,10 @@ class ADSBAllAircraftSensor(ADSBSensorBase):
                 "route_origin_name": aircraft.get("route_origin_name"),
                 "route_destination": aircraft.get("route_destination"),
                 "route_destination_name": aircraft.get("route_destination_name"),
+                "photo_thumbnail": aircraft.get("photo_thumbnail"),
+                "photo_large": aircraft.get("photo_large"),
+                "photo_link": aircraft.get("photo_link"),
+                "photo_photographer": aircraft.get("photo_photographer"),
             }
             attributes[f"aircraft_{i}"] = aircraft_info
             
