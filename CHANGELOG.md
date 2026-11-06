@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-06
+
 ### Added
 - **Aircraft photos.** The closest-aircraft card shows a photo of the
   airframe, the nearest-aircraft list shows a thumbnail per row, and
@@ -117,7 +119,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.6.7...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.7.0
 [1.6.7]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.7
 [1.6.6]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.6
 [1.6.5]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.5
