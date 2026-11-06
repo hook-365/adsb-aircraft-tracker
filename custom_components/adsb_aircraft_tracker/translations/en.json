@@ -38,7 +38,7 @@
         },
         "data_description": {
           "notification_device": "Pick one or more notify services: phones with the Home Assistant mobile app, and any notify groups you have defined. Every alert goes to all of them. Leave empty to disable notifications.",
-          "external_url": "Website URL to open when tapping notification alerts. Defaults to your local ADSB feeder; a public tracking site can be used instead.",
+          "external_url": "Website to open when tapping an alert. Defaults to your local ADSB feeder. Put {hex}, {flight} or {registration} in it to open that aircraft, e.g. https://my-tar1090/?icao={hex}",
           "military_notifications": "Get notified when military aircraft are detected nearby. Uses verified database with 16,000+ confirmed military aircraft to prevent false positives. Perfect for aviation enthusiasts and plane spotters.",
           "emergency_notifications": "Receive immediate alerts for aviation emergency codes: 7700 (general emergency), 7600 (radio failure), 7500 (hijack). These are critical aviation safety signals that are rare but important to monitor.",
           "close_aircraft_enabled": "Receive alerts when aircraft pass very close overhead or at low altitude. Great for spotting interesting aircraft in your immediate area and monitoring air traffic patterns."
@@ -97,7 +97,7 @@
         },
         "data_description": {
           "notification_device": "Pick one or more notify services: phones with the Home Assistant mobile app, and any notify groups you have defined. Every alert goes to all of them. Leave empty to disable notifications.",
-          "external_url": "Website URL to open when tapping notification alerts. Defaults to your local ADSB feeder; a public tracking site can be used instead.",
+          "external_url": "Website to open when tapping an alert. Defaults to your local ADSB feeder. Put {hex}, {flight} or {registration} in it to open that aircraft, e.g. https://my-tar1090/?icao={hex}",
           "military_notifications": "Get notified when military aircraft are detected nearby. Uses verified database with 16,000+ confirmed military aircraft to prevent false positives. Perfect for aviation enthusiasts and plane spotters.",
           "close_aircraft_enabled": "Receive alerts when aircraft pass very close overhead or at low altitude. Great for spotting interesting aircraft in your immediate area and monitoring air traffic patterns.",
           "close_aircraft_distance": "Maximum distance for close aircraft notifications. Aircraft within this range (and below altitude threshold) will trigger alerts. Units match your Home Assistant system setting.",

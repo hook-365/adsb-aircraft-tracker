@@ -116,7 +116,7 @@ A local Flightradar24 receiver doesn't serve `aircraft.json` itself. Brian O'Her
 After initial setup, click **CONFIGURE** on your integration to access advanced options:
 
 - **Devices for alerts**: one or more notify services. Phones with the Home Assistant mobile app and any [notify groups](https://www.home-assistant.io/integrations/group/#notify-groups) you have defined are listed; every alert goes to all of them
-- **External URL**: Custom ADSB website URL for notifications
+- **External URL**: website an alert opens when tapped. Defaults to your feeder. Put `{hex}`, `{flight}` or `{registration}` in it to open that aircraft, e.g. `https://my-tar1090/?icao={hex}`
 - **Update Interval**: Adjust data refresh frequency
 - **Distance Limit**: Set maximum tracking range
 - **Aircraft photos** (default on): look up a photo of each nearby or military airframe on [planespotters.net](https://www.planespotters.net) for the cards and notifications. One request per newly seen airframe, nearest five plus military only, cached 24 hours either way; photographer credit and a link to the photo page are shown, as their API terms ask. The route lookup contact below is sent in the User-Agent here too.

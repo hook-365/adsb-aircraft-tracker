@@ -74,6 +74,24 @@ class ADSBNotificationManager:
             f"http://{self.coordinator.adsb_host}:{self.coordinator.adsb_port}"
         )
     
+    # Placeholders the external URL may contain, filled per aircraft
+    URL_PLACEHOLDERS = ("hex", "flight", "registration", "tail")
+
+    def aircraft_url(self, aircraft: dict[str, Any] | None) -> str:
+        """External URL with {hex}/{flight}/{registration} filled in for this aircraft.
+
+        Lets the tap-through open the aircraft itself on tar1090, adsb-3d or
+        a public tracker, e.g. `https://my.tar1090/?icao={hex}`. An unknown
+        value leaves an empty string; the URL is otherwise passed through.
+        """
+        url = self.external_url
+        for key in self.URL_PLACEHOLDERS:
+            token = "{" + key + "}"
+            if token in url:
+                value = (aircraft or {}).get(key) or ""
+                url = url.replace(token, str(value).strip())
+        return url
+
     @property
     def military_notifications_enabled(self) -> bool:
         """Check if military aircraft notifications are enabled."""
@@ -241,6 +259,7 @@ class ADSBNotificationManager:
             notification_icon="mdi:shield-airplane",
             color="green",
             image=aircraft.get("photo_large"),
+            aircraft=aircraft,
         )
     
     async def _send_close_aircraft_notification(self, aircraft: dict[str, Any]) -> None:
@@ -290,6 +309,7 @@ class ADSBNotificationManager:
             notification_icon="mdi:airplane-alert",
             color="red",
             image=aircraft.get("photo_large"),
+            aircraft=aircraft,
         )
     
     async def _send_emergency_notification(self, aircraft: dict[str, Any]) -> None:
@@ -317,6 +337,7 @@ class ADSBNotificationManager:
             color="red",
             priority="high",
             image=aircraft.get("photo_large"),
+            aircraft=aircraft,
         )
     
     async def _send_notification(
@@ -327,10 +348,12 @@ class ADSBNotificationManager:
         color: str = "blue",
         priority: str = "normal",
         image: str | None = None,
+        aircraft: dict[str, Any] | None = None,
     ) -> None:
         """Send the notification to every configured notify service."""
         if not self.notification_devices:
             return
+        url = self.aircraft_url(aircraft)
             
         data = {
             "title": title,
@@ -338,12 +361,12 @@ class ADSBNotificationManager:
             "data": {
                 "notification_icon": notification_icon,
                 "color": color,
-                "clickAction": self.external_url,
+                "clickAction": url,
                 "actions": [
                     {
                         "action": "URI",
                         "title": "🗺️ View on ADSB Tracker",
-                        "uri": self.external_url,
+                        "uri": url,
                     }
                 ],
             }
@@ -353,7 +376,7 @@ class ADSBNotificationManager:
             # Shown by the mobile apps as the expanded notification picture
             data["data"]["image"] = image
 
-        _LOGGER.debug("Notification data with external_url %s: %s", self.external_url, data)
+        _LOGGER.debug("Notification data with url %s: %s", url, data)
         
         if priority == "high":
             data["data"]["ttl"] = 0

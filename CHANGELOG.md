@@ -17,6 +17,9 @@ versions follow [Semantic Versioning](https://semver.org/).
   mobile-app phones. Every alert goes to each selected service; a failing
   one is logged and doesn't stop the others. Existing single-device setups
   keep working unchanged.
+- **Alerts open the aircraft.** The external URL may contain `{hex}`,
+  `{flight}` or `{registration}`, filled in per alert, so tapping opens
+  that aircraft on tar1090, adsb-3d or a public tracker.
 
 ## [1.7.0] - 2026-11-06
 
