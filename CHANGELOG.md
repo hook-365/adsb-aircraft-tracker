@@ -22,6 +22,12 @@ versions follow [Semantic Versioning](https://semver.org/).
   terms ask. Sensor attributes gain `photo_thumbnail`, `photo_large`,
   `photo_link` and `photo_photographer`. Options → Basic settings →
   "Aircraft photos" turns it off (on by default).
+- **Photo style per card.** A `photos` option (also in the visual editor):
+  the closest-aircraft card takes `banner` (default), `thumbnail` or
+  `none`; the nearest-aircraft and military cards take `thumbnail`
+  (default) or `none`. Small photos keep the altitude color on their left
+  edge and fall back to the airplane icon when there is no photo. Military
+  rows in the details sensor carry the photo fields too.
 
 ## [1.6.7] - 2026-11-05
 

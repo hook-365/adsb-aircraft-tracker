@@ -81,10 +81,36 @@ const BASE_STYLE = `
   ha-icon.low { color: var(--deep-orange-color, #ff5722); }
   ha-icon.ground { color: var(--disabled-text-color); }
   .route { font-weight: 600; color: var(--primary-color); white-space: nowrap; }
+  /* Small photo in place of the airplane icon; left edge keeps the altitude color */
+  .thumb { flex: none; width: 48px; height: 32px; object-fit: cover; border-radius: 6px; border-left: 3px solid var(--disabled-text-color); background: var(--secondary-background-color); }
+  .thumb.high { border-color: var(--blue-color, #2196f3); }
+  .thumb.mid { border-color: var(--orange-color, #ff9800); }
+  .thumb.low { border-color: var(--deep-orange-color, #ff5722); }
   .credit { font-size: 0.75em; color: var(--secondary-text-color); }
   .credit a { color: inherit; text-decoration: none; }
   .credit a:hover { text-decoration: underline; }
 `;
+
+// Photo options shared by the cards' visual editors
+const PHOTO_SCHEMA = (options) => ({
+  name: "photos",
+  selector: { select: { mode: "dropdown", options } },
+});
+const PHOTO_THUMB_OPTIONS = [
+  { value: "thumbnail", label: "Small photo next to each aircraft" },
+  { value: "none", label: "No photos" },
+];
+const PHOTO_BANNER_OPTIONS = [
+  { value: "banner", label: "Large photo above the details" },
+  { value: "thumbnail", label: "Small photo next to the callsign" },
+  { value: "none", label: "No photo" },
+];
+const photoMode = (config, fallback) => (config.photos === undefined ? fallback : String(config.photos));
+
+// Small photo in place of the airplane icon, or the icon when there is none
+const thumbOrIcon = (a) => a.photo_thumbnail
+  ? `<img class="thumb ${altBand(a)}" src="${esc(a.photo_thumbnail)}" alt="" loading="lazy" title="${esc(a.photo_photographer ? `Photo © ${a.photo_photographer} · planespotters.net` : "planespotters.net")}">`
+  : `<ha-icon class="${altBand(a)}" icon="mdi:airplane"></ha-icon>`;
 
 // planespotters.net asks for photographer credit and a link to the photo page
 const photoCredit = (a) => a.photo_link
@@ -180,8 +206,9 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
   static watch = ["top_aircraft", "all_aircraft", "military_aircraft"];
   static extraSchema = [
     { name: "count", default: 5, selector: { number: { min: 1, max: 5, mode: "slider" } } },
+    PHOTO_SCHEMA(PHOTO_THUMB_OPTIONS),
   ];
-  static extraLabels = { count: "Aircraft to show" };
+  static extraLabels = { count: "Aircraft to show", photos: "Photos" };
   static style = `
     .summary { display: flex; gap: 10px; align-items: center; color: var(--secondary-text-color); font-size: 0.9em; }
     .mil { display: inline-flex; align-items: center; gap: 4px; color: var(--error-color); font-weight: 600; }
@@ -190,10 +217,6 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
     .row:hover { background: var(--secondary-background-color); }
     .row:last-child { padding-bottom: 14px; }
     .row ha-icon { flex: none; --mdc-icon-size: 22px; }
-    .thumb { flex: none; width: 48px; height: 32px; object-fit: cover; border-radius: 6px; border-left: 3px solid var(--disabled-text-color); background: var(--secondary-background-color); }
-    .thumb.high { border-color: var(--blue-color, #2196f3); }
-    .thumb.mid { border-color: var(--orange-color, #ff9800); }
-    .thumb.low { border-color: var(--deep-orange-color, #ff5722); }
     .main { min-width: 0; flex: 1; }
     .line1 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .ident { font-weight: 600; }
@@ -214,6 +237,7 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
     const top = this._state("top_aircraft");
     const all = this._state("all_aircraft");
     const count = Math.max(1, Math.min(Number(this._config.count) || 5, 5));
+    const photos = photoMode(this._config, "thumbnail") === "thumbnail";
     const rows = [];
     for (let i = 1; i <= count; i++) {
       const a = top?.attributes?.[`aircraft_${i}`];
@@ -232,9 +256,7 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
       const desc = a.description && a.description !== "Unknown aircraft" ? a.description : "";
       rows.push(`
         <div class="row" data-entity="${esc(this._ids.top_aircraft)}">
-          ${a.photo_thumbnail
-            ? `<img class="thumb ${altBand(a)}" src="${esc(a.photo_thumbnail)}" alt="" loading="lazy" title="${esc(a.photo_photographer ? `Photo © ${a.photo_photographer} · planespotters.net` : "planespotters.net")}">`
-            : `<ha-icon class="${altBand(a)}" icon="mdi:airplane"></ha-icon>`}
+          ${photos ? thumbOrIcon(a) : `<ha-icon class="${altBand(a)}" icon="mdi:airplane"></ha-icon>`}
           <div class="main">
             <div class="line1"><span class="ident">${esc(ident)}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ""}${route}</div>
             <div class="line2">${facts}${desc ? ` · ${esc(desc)}` : ""}</div>
@@ -262,7 +284,10 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
 class AdsbClosestAircraftCard extends AdsbBaseCard {
   static watch = ["closest_aircraft"];
   static defaultTitle = "Closest aircraft";
+  static extraSchema = [PHOTO_SCHEMA(PHOTO_BANNER_OPTIONS)];
+  static extraLabels = { photos: "Photo" };
   static style = `
+    .hero .thumb { width: 96px; height: 64px; }
     .photo { margin: 0 16px 10px; border-radius: 12px; overflow: hidden; background: var(--secondary-background-color); }
     .photo img { display: block; width: 100%; max-height: 220px; object-fit: cover; }
     .photo .credit { padding: 4px 10px; }
@@ -313,18 +338,21 @@ class AdsbClosestAircraftCard extends AdsbBaseCard {
     const emergency = a.emergency && a.emergency !== "none"
       ? `<div class="emergency">Emergency: ${esc(a.emergency)}${a.squawk ? ` (squawk ${esc(a.squawk)})` : ""}</div>` : "";
     const stat = (label, value) => `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`;
-    const photo = a.photo_large
+    const mode = photoMode(this._config, "banner");
+    const photo = mode === "banner" && a.photo_large
       ? `<div class="photo"><img src="${esc(a.photo_large)}" alt="${esc(ident)}" loading="lazy">${photoCredit(a)}</div>` : "";
+    const heroIcon = mode === "thumbnail" ? thumbOrIcon(a) : `<ha-icon class="${altBand(a)}" icon="mdi:airplane"></ha-icon>`;
+    const heroCredit = mode === "thumbnail" && a.photo_thumbnail ? photoCredit(a) : "";
     return `
       <ha-card data-entity="${esc(this._ids.closest_aircraft)}">
         <div class="header"><div class="title">${esc(title)}</div></div>
         ${photo}
         <div class="hero">
-          <ha-icon class="${altBand(a)}" icon="mdi:airplane"></ha-icon>
+          ${heroIcon}
           <div>
             <div class="ident">${esc(ident)}</div>
             <div class="sub">${esc(subParts.filter(Boolean).join(" · "))}</div>
-            ${operator}
+            ${operator}${heroCredit}
           </div>
         </div>
         ${emergency}${route}
@@ -344,7 +372,10 @@ class AdsbClosestAircraftCard extends AdsbBaseCard {
 class AdsbMilitaryCard extends AdsbBaseCard {
   static watch = ["military_aircraft", "military_details"];
   static defaultTitle = "Military aircraft";
+  static extraSchema = [PHOTO_SCHEMA(PHOTO_THUMB_OPTIONS)];
+  static extraLabels = { photos: "Photos" };
   static style = `
+    .row .thumb { align-self: center; }
     .state { display: flex; gap: 14px; align-items: center; padding: 16px; }
     .badge { flex: none; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
     .badge ha-icon { --mdc-icon-size: 28px; }
@@ -353,6 +384,7 @@ class AdsbMilitaryCard extends AdsbBaseCard {
     .headline { font-size: 1.15em; font-weight: 600; }
     .alert .headline { color: var(--error-color); }
     .row { display: flex; gap: 10px; align-items: baseline; padding: 6px 16px; border-top: 1px solid var(--divider-color); }
+    .row ha-icon { flex: none; --mdc-icon-size: 20px; align-self: center; }
     .row:last-child { padding-bottom: 12px; }
     .ident { font-weight: 600; }
     .facts { color: var(--secondary-text-color); font-size: 0.85em; }
@@ -374,6 +406,7 @@ class AdsbMilitaryCard extends AdsbBaseCard {
           </div>
         </ha-card>`;
     }
+    const photos = photoMode(this._config, "thumbnail") === "thumbnail";
     const rows = [];
     for (let i = 1; details[`military_${i}`]; i++) {
       const m = details[`military_${i}`];
@@ -381,7 +414,7 @@ class AdsbMilitaryCard extends AdsbBaseCard {
       const facts = [m.description && m.description !== "Unknown aircraft" ? m.description : null,
         m.distance_display && m.distance_display !== "Unknown" ? m.distance_display : null,
         alt ? `${alt.toLocaleString()} ft` : null].filter(Boolean).map(esc).join(" · ");
-      rows.push(`<div class="row"><span class="ident">${esc(identOf(m))}</span><span class="facts">${facts}</span></div>`);
+      rows.push(`<div class="row">${photos ? thumbOrIcon(m) : ""}<span class="ident">${esc(identOf(m))}</span><span class="facts">${facts}</span></div>`);
     }
     const count = details.military_count ?? rows.length;
     return `

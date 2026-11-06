@@ -130,8 +130,28 @@ Every card finds your tracker's entities by itself, so they work whatever your e
 type: custom:adsb-aircraft-tracker-card   # or any of the card types above
 title: Aircraft   # optional
 count: 5          # optional, nearest-aircraft card only (1-5)
+photos: thumbnail # optional, see below
 device_id: ...    # optional; the editor fills this in when you pick a tracker
 ```
+
+### Photos on the cards
+
+With **Aircraft photos** on (the default, see Configuration), each card can
+show the airframe's photo from [planespotters.net](https://www.planespotters.net).
+Pick the style in the card editor or with `photos:`:
+
+| Card | `photos` values | Default |
+|------|-----------------|---------|
+| ADSB Closest Aircraft | `banner` (large photo above the details, with credit), `thumbnail` (small photo next to the callsign), `none` | `banner` |
+| ADSB Aircraft Tracker | `thumbnail` (small photo per row), `none` | `thumbnail` |
+| ADSB Military Alert | `thumbnail` (small photo per row), `none` | `thumbnail` |
+
+Small photos keep the altitude color as a strip on their left edge, and
+aircraft without a photo (most GA traffic) fall back to the airplane icon,
+so mixed lists stay aligned. Every photo credits the photographer and
+links to its planespotters.net page.
+
+![Closest-aircraft card with a photo banner, nearest-aircraft list with thumbnails, and the same cards with photos off](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/card-photos.png)
 
 ## Voice / Assist Support
 

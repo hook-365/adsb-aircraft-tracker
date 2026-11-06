@@ -272,6 +272,10 @@ class ADSBMilitaryDetailsSensor(ADSBSensorBase):
                     "operator": aircraft.get("operator", ""),
                     "squawk": aircraft.get("squawk", ""),
                     "detection_reasons": aircraft.get("_detection_reasons", []),
+                    "photo_thumbnail": aircraft.get("photo_thumbnail"),
+                    "photo_large": aircraft.get("photo_large"),
+                    "photo_link": aircraft.get("photo_link"),
+                    "photo_photographer": aircraft.get("photo_photographer"),
                 }
                 attributes[f"military_{i}"] = aircraft_info
         else:
