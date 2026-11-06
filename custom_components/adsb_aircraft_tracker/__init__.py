@@ -1,6 +1,7 @@
 """ADSB Aircraft Tracker integration for Home Assistant."""
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 from datetime import timedelta
@@ -43,6 +44,12 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 CARD_URL = f"/{DOMAIN}/adsb-aircraft-tracker-card.js"
 
 
+def _file_digest(path: str) -> str:
+    """Short content hash of a file (cache-buster)."""
+    with open(path, "rb") as f:
+        return hashlib.sha1(f.read()).hexdigest()[:8]
+
+
 async def _async_register_card(hass: HomeAssistant) -> None:
     """Serve the dashboard card and load it on every frontend, once."""
     if hass.data.get(f"{DOMAIN}_card_registered"):
@@ -57,8 +64,10 @@ async def _async_register_card(hass: HomeAssistant) -> None:
         )
     except ImportError:  # HA < 2024.7
         hass.http.register_static_path(CARD_URL, path, cache_headers=False)
-    # Version query busts browser caches when the card changes
-    add_extra_js_url(hass, f"{CARD_URL}?v={INTEGRATION_VERSION}")
+    # Version + content hash bust browser caches when the card changes,
+    # including dev builds that don't bump the version
+    digest = await hass.async_add_executor_job(_file_digest, path)
+    add_extra_js_url(hass, f"{CARD_URL}?v={INTEGRATION_VERSION}-{digest}")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

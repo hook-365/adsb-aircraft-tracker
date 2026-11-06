@@ -29,6 +29,11 @@ versions follow [Semantic Versioning](https://semver.org/).
   edge and fall back to the airplane icon when there is no photo. Military
   rows in the details sensor carry the photo fields too.
 
+### Fixed
+- **Card script cache-busting.** The card URL now carries a content hash as
+  well as the version, so a changed card loads without a hard refresh even
+  when the version didn't change (dev builds, manual installs).
+
 ## [1.6.7] - 2026-11-05
 
 ### Changed
