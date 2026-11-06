@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-11-06
+
 ### Added
 - **Alerts to several devices or a notify group.** Options → Notifications →
   "Devices for alerts" is now a multi-select, and it lists notify groups
@@ -130,7 +132,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.0
 [1.7.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.7.0
 [1.6.7]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.7
 [1.6.6]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.6
