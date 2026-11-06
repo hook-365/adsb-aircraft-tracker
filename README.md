@@ -6,7 +6,7 @@
 
 A comprehensive Home Assistant integration for tracking aircraft using ADSB data from dump1090/tar1090 feeders, with built-in dashboard cards, voice queries and military aircraft alerts.
 
-![ADSB Aircraft Tracker dashboard cards: nearest aircraft with routes, closest aircraft detail, military alert and receiver stats](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/dashboard-cards.png)
+![ADSB Aircraft Tracker dashboard cards: closest aircraft with its photo, nearest aircraft with thumbnails and routes, military alert and receiver stats](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/dashboard-cards.png)
 
 ## What's New
 
