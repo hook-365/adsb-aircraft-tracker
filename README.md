@@ -10,6 +10,16 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ## What's New
 
+**1.8.1 — Older dump1090 feeders.** Altitude, speed and vertical rate now
+show for feeders that use the legacy `aircraft.json` field names (`altitude`,
+`speed`, `vert_rate`), including the dump1090 bundled in the Flightradar24
+feeder image. They showed 0 before.
+
+**1.8.0 — Alerts to several devices, and alerts that open the aircraft.**
+"Devices for alerts" is now a multi-select that also lists notify groups, and
+the external URL takes `{hex}`, `{flight}` or `{registration}` so tapping an
+alert opens that aircraft on tar1090, adsb-3d or a public tracker.
+
 **1.7.0 — Aircraft photos.** The cards now show a picture of the airframe
 from [planespotters.net](https://www.planespotters.net): a photo banner on
 the closest-aircraft card, a thumbnail per row on the nearest-aircraft and
