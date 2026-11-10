@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-11-10
+
 ### Added
 - **Overhead alerts.** A new notification for aircraft almost straight above
   you, at any altitude: anything inside a cone around straight up. The angle
@@ -157,7 +159,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.8.2...HEAD
+[1.8.2]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.2
 [1.8.1]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.1
 [1.8.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.0
 [1.7.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.7.0
