@@ -10,6 +10,13 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ## What's New
 
+**1.8.2 — Overhead alerts, and your own alert wording.** A new alert for
+aircraft almost straight above you at any altitude, with an adjustable angle
+(default 15° from straight up); off by default, see [Overhead](#overhead).
+And every alert's title and message can now be reworded in **CONFIGURE →
+Alert Wording**, with tokens like `{name}` and `{altitude}`; see
+[Your own wording](#your-own-wording).
+
 **1.8.1 — Older dump1090 feeders.** Altitude, speed and vertical rate now
 show for feeders that use the legacy `aircraft.json` field names (`altitude`,
 `speed`, `vert_rate`), including the dump1090 bundled in the Flightradar24
@@ -54,6 +61,8 @@ offers you the update, so you can see what changed before you install it.
 📱 **Smart Notifications**
 - Mobile app notifications for specific aircraft types, to one phone, several, or a notify group
 - Low altitude aircraft alerts
+- Overhead alerts when an aircraft is almost straight above you, at any altitude (off by default)
+- Your own wording for every alert title and message
 - Emergency squawk code notifications (7700/7600/7500)
 - Customizable external ADSB URL links
 
@@ -127,6 +136,7 @@ After initial setup, click **CONFIGURE** on your integration to access advanced 
 
 - **Devices for alerts**: one or more notify services. Phones with the Home Assistant mobile app and any [notify groups](https://www.home-assistant.io/integrations/group/#notify-groups) you have defined are listed; every alert goes to all of them
 - **External URL**: website an alert opens when tapped. Defaults to your feeder. Put `{hex}`, `{flight}` or `{registration}` in it to open that aircraft, e.g. `https://my-tar1090/?icao={hex}`
+- **Overhead alerts** (default off), **Overhead angle** (default 15°) and **Overhead maximum altitude** (default no limit):: see [Overhead](#overhead)
 - **Update Interval**: Adjust data refresh frequency
 - **Distance Limit**: Set maximum tracking range
 - **Aircraft photos** (default on): look up a photo of each nearby or military airframe on [planespotters.net](https://www.planespotters.net) for the cards and notifications. One request per newly seen airframe, nearest five plus military only, cached 24 hours either way; photographer credit and a link to the photo page are shown, as their API terms ask. The route lookup contact below is sent in the User-Agent here too.
@@ -363,10 +373,70 @@ The integration automatically sends mobile notifications for:
 - **Message**: Aircraft type, altitude, distance  
 - **Action**: Tap to open ADSB tracker
 
+### Overhead
+- **Trigger**: an aircraft is inside a cone around straight up, at any altitude. Off by default; turn it on in **CONFIGURE → Notifications**
+- **Message**: aircraft, altitude, how many degrees from straight up, type, speed and direction of travel
+- **Action**: Tap to open ADSB tracker
+
+The **Overhead angle** is how far from straight up still counts, in degrees. The default is 15°, about 3% of the sky. For scale, a fist held at arm's length covers about 10°.
+
+![Side view of an observer with cones of 5°, 15°, 30° and 45° around straight up, covering 0.4%, 3%, 13% and 29% of the sky](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/custom_components/adsb_aircraft_tracker/frontend/overhead-cone.svg)
+
+| Angle | Share of the sky | Circle at 3,000 ft | at 10,000 ft | at 35,000 ft |
+|-------|------------------|--------------------|--------------|--------------|
+| 5° | 0.4% | 0.1 mi across | 0.3 mi | 1.2 mi |
+| 15° (default) | 3% | 0.3 mi | 1.0 mi | 3.6 mi |
+| 30° | 13% | 0.7 mi | 2.2 mi | 7.7 mi |
+| 45° | 29% | 1.1 mi | 3.8 mi | 13.3 mi |
+
+Details:
+- Height is measured above your home, using the elevation set in Home Assistant (**Settings → System → General**). Geometric altitude is used when the feeder sends it, barometric otherwise.
+- A narrow cone is crossed in less than one update at low altitude, so the aircraft's straight-line path until the next update is checked as well. The alert usually arrives just before the pass.
+- Each aircraft alerts once per pass: not again until it has been out of the cone for 5 minutes, so a circling aircraft or hovering helicopter alerts once.
+- An aircraft that matches both this and the Low Aircraft alert is announced once, by whichever fires first.
+- **Overhead maximum altitude** ignores aircraft above that altitude (feet), if you only want ones low enough to see or hear. 0 = no limit.
+
 ### Emergency Squawks
 - **Trigger**: Aircraft broadcasting 7700, 7600, or 7500 codes
 - **Message**: Emergency type and aircraft details
 - **Action**: Tap to open ADSB tracker
+
+### Your own wording
+
+Every alert has a built-in title and message. To change them, go to **CONFIGURE → Alert Wording** and edit the title and/or message of the alerts you want to reword.
+
+Put these in curly braces and they are filled in for each aircraft:
+
+| Token | Becomes |
+|---|---|
+| `{name}` | callsign, or the tail number when there is no callsign |
+| `{flight}` | callsign |
+| `{tail}` | tail number / registration |
+| `{hex}` | ICAO hex code |
+| `{type}` | aircraft type, e.g. Boeing 737-800 |
+| `{operator}` | owner or operator |
+| `{altitude}` | altitude in feet, e.g. 3,000 |
+| `{speed}` | ground speed in knots |
+| `{distance}` | distance from home with its unit, e.g. 1.4 mi |
+| `{direction}` | where it is from home, e.g. northwest |
+| `{heading}` | where it is going, e.g. south |
+| `{trend}` | ↗️ climbing, ↘️ descending, → level |
+| `{emoji}` | icon for the alert or aircraft (🚁 🛫 🛬 🛩️ ✈️ 🪖 ⬆️ ⚠️) |
+| `{angle}` | degrees from straight up (overhead alert) |
+| `{where}` | e.g. "13° from straight up" (overhead alert) |
+| `{squawk}` | squawk code (emergency alert) |
+| `{emergency}` | GENERAL EMERGENCY, RADIO FAILURE or HIJACK (emergency alert) |
+| `{reasons}` | why it was flagged (military alert) |
+
+For example, a close aircraft message of
+
+```
+{emoji} {name} is {distance} to the {direction} at {altitude} ft
+{type}, heading {heading}
+Operator: {operator}
+```
+
+sends "🛬 UAL12 is 1.4 mi to the northwest at 2,500 ft / Boeing 737-800, heading south / Operator: United Airlines". A line whose values are all unknown is left out, so the operator line disappears when the operator isn't known. The fields start out filled with the built-in wording, so you can edit it in place; clear a field to go back to it.
 
 ## Automation Examples
 

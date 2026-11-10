@@ -34,14 +34,16 @@
           "external_url": "🗺️ External ADSB Website",
           "military_notifications": "🪖 Military Aircraft Alerts",
           "emergency_notifications": "🚨 Emergency Squawk Alerts",
-          "close_aircraft_enabled": "✈️ Close Aircraft Alerts"
+          "close_aircraft_enabled": "✈️ Close Aircraft Alerts",
+          "overhead_enabled": "⬆️ Overhead Alerts"
         },
         "data_description": {
           "notification_device": "Pick one or more notify services: phones with the Home Assistant mobile app, and any notify groups you have defined. Every alert goes to all of them. Leave empty to disable notifications.",
           "external_url": "Website to open when tapping an alert. Defaults to your local ADSB feeder. Put {hex}, {flight} or {registration} in it to open that aircraft, e.g. https://my-tar1090/?icao={hex}",
           "military_notifications": "Get notified when military aircraft are detected nearby. Uses verified database with 16,000+ confirmed military aircraft to prevent false positives. Perfect for aviation enthusiasts and plane spotters.",
           "emergency_notifications": "Receive immediate alerts for aviation emergency codes: 7700 (general emergency), 7600 (radio failure), 7500 (hijack). These are critical aviation safety signals that are rare but important to monitor.",
-          "close_aircraft_enabled": "Receive alerts when aircraft pass very close overhead or at low altitude. Great for spotting interesting aircraft in your immediate area and monitoring air traffic patterns."
+          "close_aircraft_enabled": "Receive alerts when aircraft pass very close overhead or at low altitude. Great for spotting interesting aircraft in your immediate area and monitoring air traffic patterns.",
+          "overhead_enabled": "Get notified when an aircraft passes almost straight above you, at any altitude. The cone is 15° around straight up by default; change it later in the integration options."
         }
       }
     },
@@ -93,6 +95,9 @@
           "close_aircraft_enabled": "✈️ Close Aircraft Alerts",
           "close_aircraft_distance": "📏 Alert Distance Threshold",
           "close_aircraft_altitude": "📐 Alert Altitude Threshold",
+          "overhead_enabled": "⬆️ Overhead Alerts",
+          "overhead_angle": "📐 Overhead Angle",
+          "overhead_max_altitude": "🔝 Overhead Maximum Altitude",
           "emergency_notifications": "🚨 Emergency Squawk Alerts"
         },
         "data_description": {
@@ -102,7 +107,24 @@
           "close_aircraft_enabled": "Receive alerts when aircraft pass very close overhead or at low altitude. Great for spotting interesting aircraft in your immediate area and monitoring air traffic patterns.",
           "close_aircraft_distance": "Maximum distance for close aircraft notifications. Aircraft within this range (and below altitude threshold) will trigger alerts. Units match your Home Assistant system setting.",
           "close_aircraft_altitude": "Maximum altitude for close aircraft notifications, in feet. Aircraft flying lower than this height will trigger alerts if also within distance range. Recommended: 1000-5000 feet.",
+          "overhead_enabled": "Get notified when an aircraft passes almost straight above you, at any altitude. An aircraft that also triggers the close aircraft alert is announced once, not twice.",
+          "overhead_angle": "How far from straight up still counts as overhead, in degrees (1-60). Smaller is stricter: 5 is directly above, 15 is 'look up', 45 is anywhere high in the sky.\n\n{overhead_guide}",
+          "overhead_max_altitude": "Ignore aircraft above this altitude, in feet, for overhead alerts. Useful if you only care about aircraft low enough to see or hear. 0 means no limit.",
           "emergency_notifications": "Receive immediate alerts for aviation emergency codes: 7700 (general emergency), 7600 (radio failure), 7500 (hijack). These are critical aviation safety signals that are rare but important to monitor."
+        }
+      },
+      "alert_text": {
+        "title": "Alert Wording",
+        "description": "Change the title and message of each kind of alert. The fields start with the built-in wording; clear one to go back to it. Put any of these in curly braces and they are filled in per aircraft; a line whose values are all unknown is left out.\n\n{alert_text_guide}",
+        "data": {
+          "military_title": "🪖 Military alert title",
+          "military_message": "🪖 Military alert message",
+          "close_aircraft_title": "✈️ Close aircraft alert title",
+          "close_aircraft_message": "✈️ Close aircraft alert message",
+          "overhead_title": "⬆️ Overhead alert title",
+          "overhead_message": "⬆️ Overhead alert message",
+          "emergency_title": "🚨 Emergency alert title",
+          "emergency_message": "🚨 Emergency alert message"
         }
       }
     }

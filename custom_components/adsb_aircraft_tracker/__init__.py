@@ -26,6 +26,7 @@ from .const import (
     CONF_AIRCRAFT_PHOTOS,
     DEFAULT_AIRCRAFT_PHOTOS,
     INTEGRATION_VERSION,
+    OVERHEAD_DIAGRAM_URL,
     MILITARY_DB_REFRESH_INTERVAL,
 )
 from .coordinator import ADSBDataUpdateCoordinator
@@ -55,15 +56,22 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     if hass.data.get(f"{DOMAIN}_card_registered"):
         return
     hass.data[f"{DOMAIN}_card_registered"] = True
-    path = os.path.join(os.path.dirname(__file__), "frontend", "adsb-aircraft-tracker-card.js")
+    frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
+    path = os.path.join(frontend_dir, "adsb-aircraft-tracker-card.js")
+    # The overhead-cone diagram shown in the notification options dialog
+    diagram = os.path.join(frontend_dir, "overhead-cone.svg")
     try:
         from homeassistant.components.http import StaticPathConfig
 
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(CARD_URL, path, cache_headers=False)]
+            [
+                StaticPathConfig(CARD_URL, path, cache_headers=False),
+                StaticPathConfig(OVERHEAD_DIAGRAM_URL, diagram, cache_headers=False),
+            ]
         )
     except ImportError:  # HA < 2024.7
         hass.http.register_static_path(CARD_URL, path, cache_headers=False)
+        hass.http.register_static_path(OVERHEAD_DIAGRAM_URL, diagram, cache_headers=False)
     # Version + content hash bust browser caches when the card changes,
     # including dev builds that don't bump the version
     digest = await hass.async_add_executor_job(_file_digest, path)

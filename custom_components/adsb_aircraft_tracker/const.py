@@ -44,6 +44,18 @@ CONF_CLOSE_AIRCRAFT_ENABLED = "close_aircraft_enabled"
 CONF_CLOSE_AIRCRAFT_DISTANCE = "close_aircraft_distance"
 CONF_CLOSE_AIRCRAFT_ALTITUDE = "close_aircraft_altitude"
 CONF_EMERGENCY_NOTIFICATIONS = "emergency_notifications"
+# Overhead alert: aircraft inside a cone around straight up. The angle is
+# degrees away from straight up; max altitude 0 = no limit.
+CONF_OVERHEAD_ENABLED = "overhead_enabled"
+CONF_OVERHEAD_ANGLE = "overhead_angle"
+CONF_OVERHEAD_MAX_ALTITUDE = "overhead_max_altitude"
+
+# Custom alert wording: alert kind -> (title option, message option).
+# Empty or unset means the built-in text.
+ALERT_TEXT_OPTIONS = {
+    kind: (f"{kind}_title", f"{kind}_message")
+    for kind in ("military", "close_aircraft", "overhead", "emergency")
+}
 # Contact (email or URL) sent to adsb.im in the User-Agent of route lookups.
 # They ask callers for one; empty = the project URL only, never the author's.
 CONF_ROUTE_API_CONTACT = "route_api_contact"
@@ -73,6 +85,11 @@ DEFAULT_CLOSE_AIRCRAFT_ENABLED = True
 DEFAULT_CLOSE_AIRCRAFT_DISTANCE = 2.0
 DEFAULT_CLOSE_AIRCRAFT_ALTITUDE = 3000
 DEFAULT_EMERGENCY_NOTIFICATIONS = True
+DEFAULT_OVERHEAD_ENABLED = False
+DEFAULT_OVERHEAD_ANGLE = 15
+DEFAULT_OVERHEAD_MAX_ALTITUDE = 0
+# Diagram of the overhead cone, served for the notification options dialog
+OVERHEAD_DIAGRAM_URL = f"/{DOMAIN}/overhead-cone.svg"
 DEFAULT_AIRCRAFT_PHOTOS = True
 
 # ICAO 3-letter airline codes to spoken names for TTS

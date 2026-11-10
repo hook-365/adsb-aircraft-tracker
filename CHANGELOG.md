@@ -10,6 +10,22 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Overhead alerts.** A new notification for aircraft almost straight above
+  you, at any altitude: anything inside a cone around straight up. The angle
+  defaults to 15° from straight up (about 3% of the sky) and is adjustable
+  from 1° to 60°, with an optional maximum altitude. Off by default; enable
+  it in Options → Notifications, where a diagram shows how narrow the cone
+  is. Height is measured above your Home Assistant home elevation, the path
+  to the next update is checked so fast low passes aren't missed, each
+  aircraft alerts once per pass, and an aircraft that also triggers the low
+  aircraft alert is announced once, not twice.
+- **Your own alert wording.** A new Options → Alert Wording page takes a
+  title and a message for each kind of alert (military, close aircraft,
+  overhead, emergency), with tokens such as `{name}`, `{altitude}`,
+  `{distance}` and `{type}` filled in per aircraft. The fields start with the
+  built-in wording, and a line whose values are all unknown is left out.
+
 ## [1.8.1] - 2026-11-10
 
 ### Fixed

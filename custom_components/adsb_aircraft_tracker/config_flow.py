@@ -14,6 +14,7 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import TextSelector, TextSelectorConfig
 
 from .const import (
     DOMAIN,
@@ -29,6 +30,10 @@ from .const import (
     CONF_CLOSE_AIRCRAFT_DISTANCE,
     CONF_CLOSE_AIRCRAFT_ALTITUDE,
     CONF_EMERGENCY_NOTIFICATIONS,
+    CONF_OVERHEAD_ENABLED,
+    CONF_OVERHEAD_ANGLE,
+    CONF_OVERHEAD_MAX_ALTITUDE,
+    ALERT_TEXT_OPTIONS,
     CONF_ROUTE_API_CONTACT,
     CONF_AIRCRAFT_PHOTOS,
     DEFAULT_AIRCRAFT_PHOTOS,
@@ -41,7 +46,15 @@ from .const import (
     DEFAULT_CLOSE_AIRCRAFT_DISTANCE,
     DEFAULT_CLOSE_AIRCRAFT_ALTITUDE,
     DEFAULT_EMERGENCY_NOTIFICATIONS,
+    DEFAULT_OVERHEAD_ENABLED,
+    DEFAULT_OVERHEAD_ANGLE,
+    DEFAULT_OVERHEAD_MAX_ALTITUDE,
+    INTEGRATION_VERSION,
+    OVERHEAD_DIAGRAM_URL,
 )
+
+from . import alert_text
+from .geo import cone_footprint_mi, cone_sky_share
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -301,15 +314,58 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_MILITARY_NOTIFICATIONS, default=DEFAULT_MILITARY_NOTIFICATIONS): bool,
                 vol.Optional(CONF_EMERGENCY_NOTIFICATIONS, default=DEFAULT_EMERGENCY_NOTIFICATIONS): bool,
                 vol.Optional(CONF_CLOSE_AIRCRAFT_ENABLED, default=DEFAULT_CLOSE_AIRCRAFT_ENABLED): bool,
+                vol.Optional(CONF_OVERHEAD_ENABLED, default=DEFAULT_OVERHEAD_ENABLED): bool,
             }
         )
 
         return self.async_show_form(
             step_id="notifications",
             data_schema=notifications_schema,
+            description_placeholders=URL_TOKEN_PLACEHOLDERS,
         )
 
 
+
+
+# The external-URL help text shows the literal tokens {hex}, {flight} and
+# {registration}. The frontend treats braces in translations as placeholders
+# and logs MISSING_VALUE for each one, so hand them back as themselves.
+URL_TOKEN_PLACEHOLDERS = {key: "{" + key + "}" for key in ("hex", "flight", "registration")}
+
+
+def _overhead_guide(angle: float, metric: bool) -> str:
+    """Markdown shown under the overhead angle field: how narrow the cone is.
+
+    A diagram of the cone at a few angles, then the numbers for the angle
+    currently saved (the dialog can't redraw while the field is edited).
+    """
+    def across(height_ft: int) -> str:
+        miles = cone_footprint_mi(angle, height_ft)
+        return f"{miles * 1.60934:.1f} km" if metric else f"{miles:.1f} mi"
+
+    share = cone_sky_share(angle) * 100
+    share_text = f"{share:.1f}" if share < 1 else f"{share:.0f}"
+    return (
+        f"![Cones 5°, 15°, 30° and 45° around straight up, seen from the side]"
+        f"({OVERHEAD_DIAGRAM_URL}?v={INTEGRATION_VERSION})\n\n"
+        f"Currently **{angle:g}°** from straight up: about {share_text}% of the sky. "
+        f"That is a circle {across(3000)} across for an aircraft at 3,000 ft, "
+        f"{across(10000)} at 10,000 ft and {across(35000)} at 35,000 ft. "
+        f"For scale, a fist held at arm's length covers about 10°."
+    )
+
+
+def _alert_text_guide() -> str:
+    """Markdown for the alert wording page: the tokens that can be used."""
+    return "\n".join(f"- `{{{name}}}` {meaning}" for name, meaning in alert_text.TOKENS.items())
+
+
+def _alert_text_defaults() -> dict[str, str]:
+    """Option key -> template matching the built-in wording."""
+    defaults: dict[str, str] = {}
+    for kind, (title_key, message_key) in ALERT_TEXT_OPTIONS.items():
+        defaults[title_key], defaults[message_key] = alert_text.DEFAULTS[kind]
+    return defaults
 
 
 class CannotConnect(Exception):
@@ -346,13 +402,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             if user_input.get("config_area") == "basic":
                 return await self.async_step_basic_settings()
-            else:
-                return await self.async_step_notifications_settings()
+            if user_input.get("config_area") == "text":
+                return await self.async_step_alert_text()
+            return await self.async_step_notifications_settings()
 
         schema = vol.Schema({
             vol.Required("config_area", default="basic"): vol.In({
                 "basic": "📊 Basic Settings (connection, updates, range)",
-                "notifications": "🔔 Notifications & Alerts"
+                "notifications": "🔔 Notifications & Alerts",
+                "text": "✏️ Alert Wording (your own titles and messages)",
             })
         })
 
@@ -455,6 +513,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         current_close_altitude = current_options.get(CONF_CLOSE_AIRCRAFT_ALTITUDE, current_data.get(CONF_CLOSE_AIRCRAFT_ALTITUDE, DEFAULT_CLOSE_AIRCRAFT_ALTITUDE))
         current_emergency = current_options.get(CONF_EMERGENCY_NOTIFICATIONS, current_data.get(CONF_EMERGENCY_NOTIFICATIONS, DEFAULT_EMERGENCY_NOTIFICATIONS))
 
+        current_overhead_enabled = current_options.get(CONF_OVERHEAD_ENABLED, current_data.get(CONF_OVERHEAD_ENABLED, DEFAULT_OVERHEAD_ENABLED))
+        current_overhead_angle = current_options.get(CONF_OVERHEAD_ANGLE, current_data.get(CONF_OVERHEAD_ANGLE, DEFAULT_OVERHEAD_ANGLE))
+        current_overhead_max_altitude = current_options.get(CONF_OVERHEAD_MAX_ALTITUDE, current_data.get(CONF_OVERHEAD_MAX_ALTITUDE, DEFAULT_OVERHEAD_MAX_ALTITUDE))
+
         # Convert close distance for display if metric
         close_distance_display = current_close_distance
         if self.hass.config.units.length == "km":
@@ -468,6 +530,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(CONF_CLOSE_AIRCRAFT_ENABLED, default=current_close_enabled): bool,
                 vol.Optional(CONF_CLOSE_AIRCRAFT_DISTANCE, default=close_distance_display): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=50)),
                 vol.Optional(CONF_CLOSE_AIRCRAFT_ALTITUDE, default=current_close_altitude): vol.All(vol.Coerce(int), vol.Range(min=100, max=10000)),
+                vol.Optional(CONF_OVERHEAD_ENABLED, default=current_overhead_enabled): bool,
+                vol.Optional(CONF_OVERHEAD_ANGLE, default=current_overhead_angle): vol.All(vol.Coerce(float), vol.Range(min=1, max=60)),
+                vol.Optional(CONF_OVERHEAD_MAX_ALTITUDE, default=current_overhead_max_altitude): vol.All(vol.Coerce(int), vol.Range(min=0, max=60000)),
                 vol.Optional(CONF_EMERGENCY_NOTIFICATIONS, default=current_emergency): bool,
             }
         )
@@ -476,5 +541,50 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             step_id="notifications_settings",
             data_schema=notifications_schema,
             errors=errors,
+            # The frontend renders each field's help text as markdown with
+            # these placeholders, which is how the cone diagram ends up
+            # directly under the overhead angle field
+            description_placeholders={
+                **URL_TOKEN_PLACEHOLDERS,
+                "overhead_guide": _overhead_guide(
+                    current_overhead_angle, self.hass.config.units.length == "km"
+                ),
+            },
         )
 
+    async def async_step_alert_text(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Custom title and message for each kind of alert."""
+        keys = [key for pair in ALERT_TEXT_OPTIONS.values() for key in pair]
+        defaults = _alert_text_defaults()
+
+        if user_input is not None:
+            # A cleared field is left out of user_input; store it as empty so
+            # the merge below doesn't keep the old wording
+            texts = {key: (user_input.get(key) or "").strip() for key in keys}
+            # Wording left as pre-filled is stored as "built-in", which keeps
+            # following the built-in text if a later release changes it
+            for key, default in defaults.items():
+                if texts[key] == default:
+                    texts[key] = ""
+            return self.async_create_entry(
+                title="",
+                data={**self.config_entry.options, **texts},
+            )
+
+        current_options = self.config_entry.options
+        fields: dict[Any, Any] = {}
+        for title_key, message_key in ALERT_TEXT_OPTIONS.values():
+            fields[vol.Optional(
+                title_key, description={"suggested_value": current_options.get(title_key) or defaults[title_key]}
+            )] = str
+            fields[vol.Optional(
+                message_key, description={"suggested_value": current_options.get(message_key) or defaults[message_key]}
+            )] = TextSelector(TextSelectorConfig(multiline=True))
+
+        return self.async_show_form(
+            step_id="alert_text",
+            data_schema=vol.Schema(fields),
+            description_placeholders={"alert_text_guide": _alert_text_guide()},
+        )

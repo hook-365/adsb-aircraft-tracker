@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -17,13 +18,29 @@ from .const import (
     CONF_CLOSE_AIRCRAFT_DISTANCE,
     CONF_CLOSE_AIRCRAFT_ALTITUDE,
     CONF_EMERGENCY_NOTIFICATIONS,
+    CONF_OVERHEAD_ENABLED,
+    CONF_OVERHEAD_ANGLE,
+    CONF_OVERHEAD_MAX_ALTITUDE,
+    ALERT_TEXT_OPTIONS,
     DEFAULT_MILITARY_NOTIFICATIONS,
     DEFAULT_CLOSE_AIRCRAFT_ENABLED,
     DEFAULT_CLOSE_AIRCRAFT_DISTANCE,
     DEFAULT_CLOSE_AIRCRAFT_ALTITUDE,
     DEFAULT_EMERGENCY_NOTIFICATIONS,
+    DEFAULT_OVERHEAD_ENABLED,
+    DEFAULT_OVERHEAD_ANGLE,
+    DEFAULT_OVERHEAD_MAX_ALTITUDE,
+    DEFAULT_UPDATE_INTERVAL,
 )
+from . import alert_text
 from .coordinator import ADSBDataUpdateCoordinator
+from .geo import distance_and_bearing, min_ground_distance_ahead, zenith_angle
+from .tts_format import heading_to_cardinal
+
+M_TO_FT = 3.28084
+# One alert per aircraft pass: an aircraft that was overhead (or already got
+# the low-aircraft alert) is not announced again for this long.
+OVERHEAD_RENOTIFY_SECONDS = 300
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,6 +61,8 @@ class ADSBNotificationManager:
         self._last_military_aircraft: set[str] = set()
         self._last_close_aircraft: str | None = None
         self._last_emergency_aircraft: set[tuple[str, str]] = set()
+        # hex -> monotonic time it was last inside the overhead cone
+        self._overhead_last_seen: dict[str, float] = {}
         
     @property
     def notification_devices(self) -> list[str]:
@@ -134,6 +153,75 @@ class ADSBNotificationManager:
             self.config_entry.data.get(CONF_EMERGENCY_NOTIFICATIONS, DEFAULT_EMERGENCY_NOTIFICATIONS))
         )
     
+    @property
+    def overhead_enabled(self) -> bool:
+        """Check if overhead (straight up) notifications are enabled."""
+        return (
+            self.config_entry.options.get(CONF_OVERHEAD_ENABLED,
+            self.config_entry.data.get(CONF_OVERHEAD_ENABLED, DEFAULT_OVERHEAD_ENABLED))
+        )
+
+    @property
+    def overhead_angle(self) -> float:
+        """Half-angle of the overhead cone, in degrees from straight up."""
+        value = self.config_entry.options.get(
+            CONF_OVERHEAD_ANGLE, self.config_entry.data.get(CONF_OVERHEAD_ANGLE)
+        )
+        return DEFAULT_OVERHEAD_ANGLE if value is None else value
+
+    @property
+    def overhead_max_altitude(self) -> int:
+        """Ignore aircraft above this altitude (feet) for overhead alerts; 0 = no limit."""
+        value = self.config_entry.options.get(
+            CONF_OVERHEAD_MAX_ALTITUDE, self.config_entry.data.get(CONF_OVERHEAD_MAX_ALTITUDE)
+        )
+        return DEFAULT_OVERHEAD_MAX_ALTITUDE if value is None else value
+
+    def _text_values(self, aircraft: dict[str, Any], **extra: Any) -> dict[str, str]:
+        """Values for the {tokens} of a custom alert title or message."""
+        flight = (aircraft.get("flight") or "").strip()
+        tail = aircraft.get("tail") or ""
+        if tail == "Unknown":
+            tail = ""
+        operator = aircraft.get("operator") or ""
+        vrate = aircraft.get("vertical_rate_fpm") or 0
+        values = {
+            "name": flight or tail or "Unknown",
+            "flight": flight,
+            "tail": tail,
+            "hex": aircraft.get("hex") or "",
+            "type": aircraft.get("description") or "Unknown aircraft",
+            "operator": "" if operator == "Unknown" else operator,
+            "altitude": f"{aircraft.get('altitude_ft') or 0:,.0f}",
+            "speed": f"{aircraft.get('speed_kts') or 0:.0f}",
+            "distance": self.coordinator.format_distance(aircraft.get("distance_mi") or 0),
+            "direction": heading_to_cardinal(aircraft.get("direction")) or "",
+            "heading": heading_to_cardinal(aircraft.get("heading")) or "",
+            "trend": "↗️" if vrate > 500 else "↘️" if vrate < -500 else "→",
+            "emoji": "✈️",
+            "angle": "",
+            "where": "",
+            "squawk": aircraft.get("squawk") or "",
+            "emergency": "",
+            "reasons": ", ".join(aircraft.get("_detection_reasons") or []),
+        }
+        values.update({key: str(value) for key, value in extra.items()})
+        return values
+
+    def _alert_text(
+        self, kind: str, title: str, message: str, aircraft: dict[str, Any], **extra: Any
+    ) -> tuple[str, str]:
+        """The user's wording for this alert kind, or the built-in title/message."""
+        title_key, message_key = ALERT_TEXT_OPTIONS[kind]
+        options = self.config_entry.options
+        if not (options.get(title_key) or options.get(message_key)):
+            return title, message
+        values = self._text_values(aircraft, **extra)
+        return (
+            alert_text.render(options.get(title_key), values) or title,
+            alert_text.render(options.get(message_key), values) or message,
+        )
+
     async def check_and_notify(
         self, aircraft_list: list[dict[str, Any]] | None = None
     ) -> None:
@@ -153,6 +241,11 @@ class ADSBNotificationManager:
         if self.military_notifications_enabled:
             await self._check_military_aircraft(aircraft_list)
         
+        # Overhead runs before the low-aircraft check so that an aircraft
+        # matching both gets one alert, not two
+        if self.overhead_enabled:
+            await self._check_overhead_aircraft(aircraft_list)
+
         # Check for close aircraft notifications  
         if self.close_aircraft_enabled:
             await self._check_close_aircraft(aircraft_list)
@@ -175,6 +268,80 @@ class ADSBNotificationManager:
         
         self._last_military_aircraft = current_military
     
+    def _overhead_angles(
+        self, plane: dict[str, Any], home_elevation_ft: float, lookahead_s: float
+    ) -> tuple[float, float] | None:
+        """(angle now, smallest angle over the next update) from straight up, in degrees.
+
+        None for aircraft that can't be placed in the sky: on the ground, no
+        position, or no known altitude above the home.
+        """
+        if plane.get("on_ground"):
+            return None
+        lat, lon = plane.get("latitude"), plane.get("longitude")
+        if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+            return None
+        altitude = plane.get("altitude_geom")
+        if not isinstance(altitude, (int, float)) or isinstance(altitude, bool):
+            altitude = plane.get("altitude_ft") or 0
+        if altitude <= 0:
+            return None
+        max_altitude = self.overhead_max_altitude
+        if max_altitude and altitude > max_altitude:
+            return None
+        height = altitude - home_elevation_ft
+        # Recomputed from the position: distance_mi is rounded to 0.1 mi,
+        # too coarse for a narrow cone at low altitude
+        distance, bearing = distance_and_bearing(
+            self.hass.config.latitude, self.hass.config.longitude, lat, lon
+        )
+        now = zenith_angle(distance, height)
+        if now is None:
+            return None
+        ahead = now
+        heading, speed = plane.get("heading"), plane.get("speed_kts")
+        if isinstance(heading, (int, float)) and isinstance(speed, (int, float)) and speed > 0:
+            # A narrow cone is crossed in less than one update at low
+            # altitude, so also test the straight path until the next one
+            closest = min_ground_distance_ahead(distance, bearing, heading, speed, lookahead_s)
+            ahead = zenith_angle(closest, height) or now
+        return now, min(now, ahead)
+
+    async def _check_overhead_aircraft(self, aircraft_list: list[dict[str, Any]]) -> None:
+        """Notify when an aircraft is (about to be) nearly straight above the home.
+
+        Once per pass: an aircraft is announced when it enters the cone and
+        not again until it has been out of it for OVERHEAD_RENOTIFY_SECONDS,
+        so a circling aircraft or a hovering helicopter alerts once.
+        """
+        now_ts = time.monotonic()
+        threshold = self.overhead_angle
+        home_elevation_ft = (self.hass.config.elevation or 0) * M_TO_FT
+        interval = self.coordinator.update_interval
+        lookahead_s = interval.total_seconds() if interval else DEFAULT_UPDATE_INTERVAL
+
+        for plane in aircraft_list or []:
+            hex_code = plane.get("hex")
+            if not hex_code:
+                continue
+            angles = self._overhead_angles(plane, home_elevation_ft, lookahead_s)
+            if angles is None or angles[1] > threshold:
+                continue
+            last = self._overhead_last_seen.get(hex_code)
+            self._overhead_last_seen[hex_code] = now_ts
+            if last is not None and now_ts - last <= OVERHEAD_RENOTIFY_SECONDS:
+                continue
+            if hex_code == self._last_close_aircraft:
+                # Already announced by the low-aircraft alert on its way in
+                continue
+            await self._send_overhead_notification(plane, angles[0], angles[1], threshold)
+
+        self._overhead_last_seen = {
+            hex_code: seen
+            for hex_code, seen in self._overhead_last_seen.items()
+            if now_ts - seen <= OVERHEAD_RENOTIFY_SECONDS
+        }
+
     async def _check_close_aircraft(self, aircraft_list: list[dict[str, Any]]) -> None:
         """Check and notify about very close/low aircraft."""
         if not aircraft_list:
@@ -189,7 +356,9 @@ class ADSBNotificationManager:
             plane for plane in aircraft_list
             if ((plane.get("distance_mi") or 999) <= distance_threshold and
                 (plane.get("altitude_ft") or 50000) < altitude_threshold and
-                (plane.get("distance_mi") or 999) > 0)
+                (plane.get("distance_mi") or 999) > 0 and
+                # the overhead alert already covered this aircraft
+                plane.get("hex") not in self._overhead_last_seen)
         ]
         
         if not close_aircraft:
@@ -253,8 +422,11 @@ class ADSBNotificationManager:
             message += f"\nDetected by: {', '.join(reasons)}"
         
         _LOGGER.debug("Sending military notification with external_url: %s", self.external_url)
+        title, message = self._alert_text(
+            "military", "🪖 MILITARY AIRCRAFT DETECTED", message, aircraft, emoji="🪖"
+        )
         await self._send_notification(
-            title="🪖 MILITARY AIRCRAFT DETECTED",
+            title=title,
             message=message,
             notification_icon="mdi:shield-airplane",
             color="green",
@@ -303,8 +475,11 @@ class ADSBNotificationManager:
         if operator and operator != "Unknown":
             message += f"\nOperator: {operator}"
         
+        title, message = self._alert_text(
+            "close_aircraft", "✈️ LOW AIRCRAFT OVERHEAD", message, aircraft, emoji=emoji
+        )
         await self._send_notification(
-            title="✈️ LOW AIRCRAFT OVERHEAD",
+            title=title,
             message=message,
             notification_icon="mdi:airplane-alert",
             color="red",
@@ -312,6 +487,48 @@ class ADSBNotificationManager:
             aircraft=aircraft,
         )
     
+    async def _send_overhead_notification(
+        self, aircraft: dict[str, Any], angle_now: float, angle_min: float, threshold: float
+    ) -> None:
+        """Send the "look up" notification."""
+        tail = aircraft.get("tail", "Unknown")
+        flight = (aircraft.get("flight") or "").strip()
+        altitude = aircraft.get("altitude_ft", 0)
+        speed = aircraft.get("speed_kts", 0)
+        description = aircraft.get("description", "Unknown aircraft")
+        identifier = flight if flight else tail
+
+        if angle_now <= threshold:
+            where = f"{angle_now:.0f}° from straight up"
+        else:
+            # Caught by the look-ahead: still on its way in
+            came_from = heading_to_cardinal(aircraft.get("direction"))
+            where = f"about to pass within {angle_min:.0f}° of straight up"
+            if came_from:
+                where += f", coming from the {came_from}"
+
+        message = f"⬆️ {identifier} at {altitude:,.0f}ft, {where}\n{description} • {speed:.0f}kts"
+        going = heading_to_cardinal(aircraft.get("heading"))
+        if going:
+            message += f" heading {going}"
+
+        operator = aircraft.get("operator")
+        if operator and operator != "Unknown":
+            message += f"\nOperator: {operator}"
+
+        title, message = self._alert_text(
+            "overhead", "⬆️ AIRCRAFT OVERHEAD", message, aircraft,
+            emoji="⬆️", where=where, angle=f"{min(angle_now, angle_min):.0f}",
+        )
+        await self._send_notification(
+            title=title,
+            message=message,
+            notification_icon="mdi:airplane",
+            color="blue",
+            image=aircraft.get("photo_large"),
+            aircraft=aircraft,
+        )
+
     async def _send_emergency_notification(self, aircraft: dict[str, Any]) -> None:
         """Send emergency squawk notification."""
         tail = aircraft.get("tail", "Unknown")
@@ -330,8 +547,12 @@ class ADSBNotificationManager:
         
         message = f"{identifier} squawking {squawk} ({emergency_type}) at {self.coordinator.format_distance(distance)}"
         
+        title, message = self._alert_text(
+            "emergency", "⚠️ EMERGENCY SQUAWK", message, aircraft,
+            emoji="⚠️", emergency=emergency_type,
+        )
         await self._send_notification(
-            title="⚠️ EMERGENCY SQUAWK",
+            title=title,
             message=message,
             notification_icon="mdi:alert",
             color="red",
