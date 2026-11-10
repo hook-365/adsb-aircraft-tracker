@@ -101,7 +101,7 @@ offers you the update, so you can see what changed before you install it.
 4. **Update Interval**: How often to fetch data (default: `10` seconds)
 5. **Distance Limit**: Aircraft range in miles (`0` = unlimited)
 
-Any source that returns readsb-style JSON (a top-level `"aircraft"` list with `hex`, `lat`/`lon`, `alt_baro`, `gs`, `track`, `flight`) works, including bridges from other services. The content type doesn't matter; `text/plain` is accepted.
+Any source that returns readsb-style JSON (a top-level `"aircraft"` list with `hex`, `lat`/`lon`, `alt_baro`, `gs`, `track`, `flight`) works, including bridges from other services. Older dump1090 builds that use the legacy field names `altitude`, `speed` and `vert_rate` (such as the dump1090 bundled in the Flightradar24 feeder image) are read too. The content type doesn't matter; `text/plain` is accepted.
 
 ### Flightradar24 Receivers
 

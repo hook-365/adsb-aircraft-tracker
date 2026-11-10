@@ -10,6 +10,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **Altitude, speed and vertical rate from older dump1090 feeders.** Builds
+  that use the legacy `aircraft.json` field names `altitude`, `speed` and
+  `vert_rate` (including the dump1090 bundled in the Flightradar24 feeder
+  image) showed 0 for all three. They are now read when the readsb names
+  `alt_baro`, `gs` and `baro_rate` are absent. (#8)
+
 ## [1.8.0] - 2026-11-06
 
 ### Added

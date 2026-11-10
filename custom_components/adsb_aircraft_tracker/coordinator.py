@@ -501,10 +501,13 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         # readsb reports alt_baro as the string "ground" for taxiing aircraft —
         # normalize so every consumer can rely on altitude_ft being numeric
         # (0 = on ground or unknown; the on_ground flag disambiguates).
-        alt_baro = plane.get("alt_baro")
+        # Older dump1090 builds (MalcolmRobb/mutability, the one bundled in the
+        # FR24 image) use the legacy names altitude/speed/vert_rate — same
+        # units, so they're read as fallbacks.
+        alt_baro = plane.get("alt_baro", plane.get("altitude"))
         on_ground = alt_baro == "ground"
         altitude_ft = alt_baro if isinstance(alt_baro, (int, float)) else 0
-        gs = plane.get("gs")
+        gs = plane.get("gs", plane.get("speed"))
         speed_kts = round(gs, 0) if isinstance(gs, (int, float)) else 0
         # Distance/bearing from HA's home location. Computed here rather than
         # taken from readsb's r_dst/r_dir: those are nautical miles, relative
@@ -523,7 +526,7 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
             distance_mi = round(plane["r_dst"] * NM_TO_MI, 1)
             direction = plane.get("r_dir")
 
-        baro_rate = plane.get("baro_rate")
+        baro_rate = plane.get("baro_rate", plane.get("vert_rate"))
         vertical_rate_fpm = baro_rate if isinstance(baro_rate, (int, float)) else 0
         
         # Use enhanced description if available, fallback to original
