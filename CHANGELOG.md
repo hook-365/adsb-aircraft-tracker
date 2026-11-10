@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-11-10
+
 ### Fixed
 - **Altitude, speed and vertical rate from older dump1090 feeders.** Builds
   that use the legacy `aircraft.json` field names `altitude`, `speed` and
@@ -139,7 +141,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.1
 [1.8.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.0
 [1.7.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.7.0
 [1.6.7]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.6.7
