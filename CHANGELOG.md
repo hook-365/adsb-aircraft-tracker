@@ -10,6 +10,17 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- **Dashboard cards no longer color aircraft by altitude.** The colored
+  strip on the left edge of small photos is gone, and airplane icons use
+  the theme's primary color instead of blue/orange by altitude band. The
+  altitude is still shown as a number on every row.
+
+### Fixed
+- **Rows without a photo line up with the rest.** The airplane icon that
+  stands in for a missing photo now takes the photo's width, so callsigns
+  start at the same place on every row.
+
 ## [1.8.2] - 2026-11-10
 
 ### Added

@@ -6,9 +6,13 @@
 
 A comprehensive Home Assistant integration for tracking aircraft using ADSB data from dump1090/tar1090 feeders, with built-in dashboard cards, voice queries and military aircraft alerts.
 
-![ADSB Aircraft Tracker dashboard cards: closest aircraft with its photo, nearest aircraft with thumbnails and routes, military alert and receiver stats](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/dashboard-cards-v1.7.png)
+![ADSB Aircraft Tracker dashboard cards: closest aircraft with its photo, nearest aircraft with thumbnails and routes, military alert and receiver stats](https://raw.githubusercontent.com/hook-365/adsb-aircraft-tracker/main/images/dashboard-cards.png)
 
 ## What's New
+
+**1.8.3 — Plainer cards.** The dashboard cards no longer color aircraft by
+altitude: the colored strip on small photos is gone and airplane icons use
+your theme's primary color. Rows without a photo now line up with the rest.
 
 **1.8.2 — Overhead alerts, and your own alert wording.** A new alert for
 aircraft almost straight above you at any altitude, with an adjustable angle
@@ -44,7 +48,7 @@ offers you the update, so you can see what changed before you install it.
 
 📊 **Dashboard Cards** (built in, nothing to install)
 - Four ready-made cards in the dashboard **Add card** picker (live preview, one click): nearest aircraft, closest aircraft detail, military alert, receiver stats
-- Routes, altitude coloring, climb/descent and heading at a glance
+- Routes, climb/descent and heading at a glance
 - A photo of the airframe from [planespotters.net](https://www.planespotters.net) on the closest-aircraft card, thumbnails in the list, and the picture in notifications (nearest and military aircraft, cached a day, credited)
 - Find your tracker's entities automatically, with a visual editor, and work with multiple feeders
 
@@ -150,7 +154,7 @@ The integration ships four dashboard cards. There's nothing to install: they loa
 
 | Card | Shows |
 |------|-------|
-| **ADSB Aircraft Tracker** (`custom:adsb-aircraft-tracker-card`) | The nearest 1–5 aircraft: callsign, tail, route, distance, altitude, speed, colored by altitude, with a military flag |
+| **ADSB Aircraft Tracker** (`custom:adsb-aircraft-tracker-card`) | The nearest 1–5 aircraft: callsign, tail, route, distance, altitude, speed, with a military flag |
 | **ADSB Closest Aircraft** (`custom:adsb-closest-aircraft-card`) | The closest aircraft in detail: photo, type, operator, route with city names, distance, altitude with climb/descent, speed, heading, emergency squawks |
 | **ADSB Military Alert** (`custom:adsb-military-card`) | A green "all clear", or a red alert listing each military aircraft detected |
 | **ADSB Stats** (`custom:adsb-stats-card`) | Tracked aircraft, closest distance, military count and military-database health |
@@ -177,8 +181,7 @@ Pick the style in the card editor or with `photos:`:
 | ADSB Aircraft Tracker | `thumbnail` (small photo per row), `none` | `thumbnail` |
 | ADSB Military Alert | `thumbnail` (small photo per row), `none` | `thumbnail` |
 
-Small photos keep the altitude color as a strip on their left edge, and
-aircraft without a photo (most GA traffic) fall back to the airplane icon,
+Aircraft without a photo (most GA traffic) fall back to the airplane icon,
 so mixed lists stay aligned. Every photo credits the photographer and
 links to its planespotters.net page.
 
