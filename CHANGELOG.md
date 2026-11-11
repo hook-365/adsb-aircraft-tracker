@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.3] - 2026-11-10
+
 ### Changed
 - **Dashboard cards no longer color aircraft by altitude.** The colored
   strip on the left edge of small photos is gone, and airplane icons use
@@ -170,7 +172,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.8.2...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.8.3...HEAD
+[1.8.3]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.3
 [1.8.2]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.2
 [1.8.1]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.1
 [1.8.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.0
