@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-12
+
 ### Added
 - **Choose your units.** A new **Units** page in the integration options
   switches between aeronautical (nautical miles, feet, knots), imperial
@@ -201,7 +203,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.8.3...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.9.0
 [1.8.3]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.3
 [1.8.2]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.2
 [1.8.1]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.1
