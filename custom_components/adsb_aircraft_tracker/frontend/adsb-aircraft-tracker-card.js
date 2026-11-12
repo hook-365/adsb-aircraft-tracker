@@ -41,6 +41,12 @@ const compass = (deg) => COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 
 const identOf = (a) =>
   a.flight || (a.tail && a.tail !== "Unknown" ? a.tail : null) || (a.hex ? a.hex.toUpperCase() : "Unknown");
 
+// Altitude and speed in the units chosen in the integration options. The
+// backend formats them (altitude_display / speed_display); the feet and
+// knots fallback covers a backend older than this card.
+const altitudeText = (a, alt) => a.altitude_display || `${alt.toLocaleString()} ft`;
+const speedText = (a) => a.speed_display || `${Math.round(a.speed_kts)} kts`;
+
 function trackerEntities(hass, deviceId) {
   const found = {};
   for (const entry of Object.values(hass.entities || {})) {
@@ -240,8 +246,8 @@ class AdsbAircraftTrackerCard extends AdsbBaseCard {
         : "";
       const facts = [
         a.distance_display,
-        alt ? `${alt.toLocaleString()} ft` : null,
-        a.speed_kts ? `${Math.round(a.speed_kts)} kts` : null,
+        alt ? altitudeText(a, alt) : null,
+        a.speed_kts ? speedText(a) : null,
       ].filter(Boolean).map(esc).join(" · ");
       const desc = a.description && a.description !== "Unknown aircraft" ? a.description : "";
       rows.push(`
@@ -353,8 +359,8 @@ class AdsbClosestAircraftCard extends AdsbBaseCard {
         ${emergency}${route}
         <div class="stats">
           ${stat("Distance", esc(a.distance_display || "?"))}
-          ${stat("Altitude", `${a.on_ground ? "Ground" : alt ? `${alt.toLocaleString()} ft` : "?"}${trend ? `<ha-icon icon="${trend}"></ha-icon>` : ""}`)}
-          ${stat("Speed", a.speed_kts ? `${Math.round(a.speed_kts)} kts` : "?")}
+          ${stat("Altitude", `${a.on_ground ? "Ground" : alt ? esc(altitudeText(a, alt)) : "?"}${trend ? `<ha-icon icon="${trend}"></ha-icon>` : ""}`)}
+          ${stat("Speed", a.speed_kts ? esc(speedText(a)) : "?")}
           ${stat("Heading", heading !== null
             ? `<ha-icon icon="mdi:arrow-up" style="transform: rotate(${heading}deg)"></ha-icon>${compass(heading)}` : "?")}
         </div>
@@ -413,7 +419,7 @@ class AdsbMilitaryCard extends AdsbBaseCard {
       const alt = Number(m.altitude_ft) || 0;
       const facts = [m.description && m.description !== "Unknown aircraft" ? m.description : null,
         m.distance_display && m.distance_display !== "Unknown" ? m.distance_display : null,
-        alt ? `${alt.toLocaleString()} ft` : null].filter(Boolean).map(esc).join(" · ");
+        alt ? altitudeText(m, alt) : null].filter(Boolean).map(esc).join(" · ");
       rows.push(`<div class="row">${photos ? thumbOrIcon(m) : ""}<span class="ident">${esc(identOf(m))}</span><span class="facts">${facts}</span></div>`);
     }
     const count = details.military_count ?? rows.length;

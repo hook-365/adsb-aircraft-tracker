@@ -122,6 +122,8 @@ class ADSBMilitaryAircraftSensor(ADSBBinarySensorBase):
                 "flight": aircraft.get("flight"),
                 "distance_mi": aircraft.get("distance_mi"),
                 "altitude_ft": aircraft.get("altitude_ft"),
+                "distance_display": self.coordinator.format_distance(aircraft.get("distance_mi")),
+                "altitude_display": self.coordinator.format_altitude(aircraft.get("altitude_ft")),
                 "description": aircraft.get("description"),
                 "detection_reasons": aircraft.get("_detection_reasons", []),
             }

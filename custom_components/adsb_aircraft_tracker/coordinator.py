@@ -17,6 +17,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .geo import distance_and_bearing
+from .units import NM_TO_MI, UnitSystem, resolve as resolve_units
 
 # Route lookups are batched: the first unknown callsign starts a timer, and
 # every callsign that turns up until it expires goes out in one routeset
@@ -29,16 +30,15 @@ from .const import (
     CONF_ADSB_PORT,
     CONF_ADSB_PATH,
     CONF_DISTANCE_LIMIT,
+    CONF_UNITS,
     DEFAULT_ADSB_PORT,
     DEFAULT_ADSB_PATH,
     DEFAULT_DISTANCE_LIMIT,
+    DEFAULT_UNITS,
     MILITARY_DB_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-# readsb's r_dst is in nautical miles
-NM_TO_MI = 1.15078
 
 
 class AircraftRegistry:
@@ -276,24 +276,33 @@ class ADSBDataUpdateCoordinator(DataUpdateCoordinator):
         
         return friendly_name
 
+    @property
+    def units(self) -> UnitSystem:
+        """Units for everything shown or spoken (the Units option)."""
+        return resolve_units(
+            self.config_entry.options.get(CONF_UNITS, DEFAULT_UNITS),
+            self.hass.config.units.length == "km",
+        )
+
     def get_distance_unit(self) -> str:
-        """Get the appropriate distance unit based on Home Assistant unit system."""
-        return "km" if self.hass.config.units.length == "km" else "mi"
-    
+        """Label of the distance unit in use: mi, km or nm."""
+        return self.units.distance_label
+
     def convert_distance(self, miles: float) -> float:
-        """Convert miles to appropriate unit based on Home Assistant unit system."""
-        if self.hass.config.units.length == "km":
-            return miles * 1.60934  # Convert to kilometers
-        return miles
-    
+        """Convert miles to the distance unit in use."""
+        return miles * self.units.distance_factor
+
     def format_distance(self, miles: float | None) -> str:
-        """Format distance with appropriate unit."""
-        if miles is None or miles == 0:
-            return "Unknown"
-        if self.hass.config.units.length == "km":
-            km = miles * 1.60934
-            return f"{km:.1f} km"
-        return f"{miles:.1f} mi"
+        """Format a distance (stored in miles) with its unit."""
+        return self.units.format_distance(miles)
+
+    def format_altitude(self, feet: float | None) -> str:
+        """Format an altitude (stored in feet) with its unit."""
+        return self.units.format_altitude(feet)
+
+    def format_speed(self, knots: float | None) -> str:
+        """Format a ground speed (stored in knots) with its unit."""
+        return self.units.format_speed(knots)
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch aircraft data from ADSB source."""

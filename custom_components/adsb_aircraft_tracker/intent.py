@@ -207,7 +207,7 @@ class MilitaryStatusIntentHandler(intent.IntentHandler):
             desc = format_description_for_tts(enrich_military_description(ac) or ac.get("description"))
             dist = coordinator.format_distance(ac.get("distance_mi"))
             alt_str = format_altitude_with_trend(
-                ac.get("altitude_ft"), ac.get("vertical_rate_fpm")
+                ac.get("altitude_ft"), ac.get("vertical_rate_fpm"), coordinator.units
             )
             parts = [f"I'm detecting 1 military aircraft. It's {identity}"]
             if desc:
@@ -224,7 +224,7 @@ class MilitaryStatusIntentHandler(intent.IntentHandler):
             desc = format_description_for_tts(enrich_military_description(ac) or ac.get("description"))
             dist = coordinator.format_distance(ac.get("distance_mi"))
             alt_str = format_altitude_with_trend(
-                ac.get("altitude_ft"), ac.get("vertical_rate_fpm")
+                ac.get("altitude_ft"), ac.get("vertical_rate_fpm"), coordinator.units
             )
             intro = f"I'm detecting {len(military)} military aircraft."
             detail_parts = [f"The closest is {identity}"]
@@ -301,7 +301,7 @@ class AircraftRouteIntentHandler(intent.IntentHandler):
         if route.valid and route.origin_name and route.destination_name:
             dist = coordinator.format_distance(aircraft.get("distance_mi"))
             alt_str = format_altitude_with_trend(
-                aircraft.get("altitude_ft"), aircraft.get("vertical_rate_fpm")
+                aircraft.get("altitude_ft"), aircraft.get("vertical_rate_fpm"), coordinator.units
             )
             parts = [
                 f"The closest aircraft, {identity}, is flying from {route.origin_name} to {route.destination_name}"
@@ -362,7 +362,7 @@ class AircraftByTypeIntentHandler(intent.IntentHandler):
                 identity = get_identity_for_tts(ac)
                 dist = coordinator.format_distance(ac.get("distance_mi"))
                 alt_str = format_altitude_with_trend(
-                    ac.get("altitude_ft"), ac.get("vertical_rate_fpm")
+                    ac.get("altitude_ft"), ac.get("vertical_rate_fpm"), coordinator.units
                 )
                 parts = [f"I can see 1 military aircraft. It's {identity}"]
                 if dist and dist != "Unknown":
@@ -374,7 +374,7 @@ class AircraftByTypeIntentHandler(intent.IntentHandler):
                 ac = military[0]
                 dist = coordinator.format_distance(ac.get("distance_mi"))
                 alt_str = format_altitude_with_trend(
-                    ac.get("altitude_ft"), ac.get("vertical_rate_fpm")
+                    ac.get("altitude_ft"), ac.get("vertical_rate_fpm"), coordinator.units
                 )
                 parts = [f"I can see {len(military)} military aircraft nearby. The closest is"]
                 if dist and dist != "Unknown":
@@ -416,7 +416,7 @@ class AircraftByTypeIntentHandler(intent.IntentHandler):
         closest = filtered[0]
         dist = coordinator.format_distance(closest.get("distance_mi"))
         alt_str = format_altitude_with_trend(
-            closest.get("altitude_ft"), closest.get("vertical_rate_fpm")
+            closest.get("altitude_ft"), closest.get("vertical_rate_fpm"), coordinator.units
         )
 
         count = len(filtered)
@@ -511,10 +511,10 @@ class AircraftSuperlativeIntentHandler(intent.IntentHandler):
         # Add the superlative stat prominently
         value = winner.get(attr_key)
         if attr_key == "speed_kts":
-            parts.append(f"at {int(value)} knots")
+            parts.append(f"at {coordinator.units.speak_speed(int(value))}")
         elif attr_key == "altitude_ft":
             alt_str = format_altitude_with_trend(
-                value, winner.get("vertical_rate_fpm")
+                value, winner.get("vertical_rate_fpm"), coordinator.units
             )
             if alt_str:
                 parts.append(alt_str)
@@ -531,13 +531,13 @@ class AircraftSuperlativeIntentHandler(intent.IntentHandler):
 
         if attr_key != "altitude_ft":
             alt_str = format_altitude_with_trend(
-                winner.get("altitude_ft"), winner.get("vertical_rate_fpm")
+                winner.get("altitude_ft"), winner.get("vertical_rate_fpm"), coordinator.units
             )
             if alt_str:
                 parts.append(alt_str)
 
         if attr_key != "speed_kts":
-            speed = format_speed_for_tts(winner.get("speed_kts"))
+            speed = format_speed_for_tts(winner.get("speed_kts"), coordinator.units)
             if speed:
                 parts.append(speed)
 
@@ -699,7 +699,7 @@ def _format_brief_aircraft(
     identity = get_identity_for_tts(aircraft)
     dist = coordinator.format_distance(aircraft.get("distance_mi"))
     alt_str = format_altitude_with_trend(
-        aircraft.get("altitude_ft"), aircraft.get("vertical_rate_fpm")
+        aircraft.get("altitude_ft"), aircraft.get("vertical_rate_fpm"), coordinator.units
     )
     heading = heading_to_cardinal(aircraft.get("heading"))
 
@@ -726,7 +726,7 @@ def _format_aircraft_response(
     altitude_ft = aircraft.get("altitude_ft")
     vertical_rate = aircraft.get("vertical_rate_fpm")
     heading = heading_to_cardinal(aircraft.get("heading"))
-    speed = format_speed_for_tts(aircraft.get("speed_kts"))
+    speed = format_speed_for_tts(aircraft.get("speed_kts"), coordinator.units)
 
     parts = [f"That's {identity}"]
 
@@ -741,7 +741,7 @@ def _format_aircraft_response(
         if dist_str and dist_str != "Unknown":
             parts.append(f"about {dist_str} away")
 
-    alt_str = format_altitude_with_trend(altitude_ft, vertical_rate)
+    alt_str = format_altitude_with_trend(altitude_ft, vertical_rate, coordinator.units)
     if alt_str:
         parts.append(alt_str)
 

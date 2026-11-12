@@ -36,8 +36,8 @@ from . import alert_text
 from .coordinator import ADSBDataUpdateCoordinator
 from .geo import distance_and_bearing, min_ground_distance_ahead, zenith_angle
 from .tts_format import heading_to_cardinal
+from .units import M_TO_FT
 
-M_TO_FT = 3.28084
 # One alert per aircraft pass: an aircraft that was overhead (or already got
 # the low-aircraft alert) is not announced again for this long.
 OVERHEAD_RENOTIFY_SECONDS = 300
@@ -185,6 +185,7 @@ class ADSBNotificationManager:
             tail = ""
         operator = aircraft.get("operator") or ""
         vrate = aircraft.get("vertical_rate_fpm") or 0
+        units = self.coordinator.units
         values = {
             "name": flight or tail or "Unknown",
             "flight": flight,
@@ -192,8 +193,10 @@ class ADSBNotificationManager:
             "hex": aircraft.get("hex") or "",
             "type": aircraft.get("description") or "Unknown aircraft",
             "operator": "" if operator == "Unknown" else operator,
-            "altitude": f"{aircraft.get('altitude_ft') or 0:,.0f}",
-            "speed": f"{aircraft.get('speed_kts') or 0:.0f}",
+            "altitude": units.altitude_text(aircraft.get("altitude_ft")),
+            "altitude_unit": units.altitude_label,
+            "speed": units.speed_text(aircraft.get("speed_kts")),
+            "speed_unit": units.speed_label,
             "distance": self.coordinator.format_distance(aircraft.get("distance_mi") or 0),
             "direction": heading_to_cardinal(aircraft.get("direction")) or "",
             "heading": heading_to_cardinal(aircraft.get("heading")) or "",
@@ -399,6 +402,7 @@ class ADSBNotificationManager:
         flight = (aircraft.get("flight") or "").strip()
         distance = aircraft.get("distance_mi", 0)
         altitude = aircraft.get("altitude_ft", 0)
+        units = self.coordinator.units
         description = aircraft.get("description", "Unknown aircraft")
         reasons = aircraft.get("_detection_reasons", [])
         speed = aircraft.get("speed_kts", 0)
@@ -410,9 +414,9 @@ class ADSBNotificationManager:
         identifier = flight if flight else tail
         
         message = (
-            f"🪖 {identifier} at {altitude:,.0f}ft {trend} {self.coordinator.format_distance(distance)} away\n"
+            f"🪖 {identifier} at {units.altitude_text(altitude)}{units.altitude_label} {trend} {units.format_distance(distance)} away\n"
             f"Type: {description}\n"
-            f"Speed: {speed:.0f}kts"
+            f"Speed: {units.speed_text(speed)}{units.speed_label}"
         )
         
         if flight:
@@ -440,6 +444,7 @@ class ADSBNotificationManager:
         flight = (aircraft.get("flight") or "").strip()
         distance = aircraft.get("distance_mi", 0)
         altitude = aircraft.get("altitude_ft", 0)
+        units = self.coordinator.units
         speed = aircraft.get("speed_kts", 0)
         description = aircraft.get("description", "Unknown aircraft")
         
@@ -464,8 +469,8 @@ class ADSBNotificationManager:
         identifier = flight if flight else tail
         
         message = (
-            f"{emoji} {identifier} at {altitude:,.0f}ft {trend} {self.coordinator.format_distance(distance)} away\n"
-            f"{description} • {speed:.0f}kts"
+            f"{emoji} {identifier} at {units.altitude_text(altitude)}{units.altitude_label} {trend} {units.format_distance(distance)} away\n"
+            f"{description} • {units.speed_text(speed)}{units.speed_label}"
         )
         
         if flight:
@@ -494,6 +499,7 @@ class ADSBNotificationManager:
         tail = aircraft.get("tail", "Unknown")
         flight = (aircraft.get("flight") or "").strip()
         altitude = aircraft.get("altitude_ft", 0)
+        units = self.coordinator.units
         speed = aircraft.get("speed_kts", 0)
         description = aircraft.get("description", "Unknown aircraft")
         identifier = flight if flight else tail
@@ -507,7 +513,10 @@ class ADSBNotificationManager:
             if came_from:
                 where += f", coming from the {came_from}"
 
-        message = f"⬆️ {identifier} at {altitude:,.0f}ft, {where}\n{description} • {speed:.0f}kts"
+        message = (
+            f"⬆️ {identifier} at {units.altitude_text(altitude)}{units.altitude_label}, {where}\n"
+            f"{description} • {units.speed_text(speed)}{units.speed_label}"
+        )
         going = heading_to_cardinal(aircraft.get("heading"))
         if going:
             message += f" heading {going}"

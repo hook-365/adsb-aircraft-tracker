@@ -10,6 +10,35 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Choose your units.** A new **Units** page in the integration options
+  switches between aeronautical (nautical miles, feet, knots), imperial
+  (miles, feet, miles per hour) and metric (kilometers, meters, kilometers
+  per hour). It applies to the dashboard cards, notifications, voice
+  answers, and the range and alert thresholds in the options, which are now
+  shown and entered in your units. The default, Automatic, is what the
+  integration did before: distance follows Home Assistant, altitude in feet,
+  speed in knots. (#9)
+- **`altitude_display` and `speed_display` attributes** on the aircraft
+  sensors, next to `distance_display`: the value in your units, ready to
+  show. `distance_mi`, `altitude_ft` and `speed_kts` are unchanged and
+  always in miles, feet and knots.
+- **`{altitude_unit}` and `{speed_unit}` tokens** for custom alert wording.
+
+### Changed
+- **`{altitude}` and `{speed}` in custom alert wording follow your units.**
+  If you wrote your own wording with a literal `ft` or `kts` after them and
+  then switch units, replace those with `{altitude_unit}` and
+  `{speed_unit}`. Wording you never changed needs nothing.
+
+### Fixed
+- **Range limit entered during setup on a metric Home Assistant** was saved
+  as miles although the field asked for kilometers, so the range came out
+  1.6 times too large. Existing installs: open **CONFIGURE → Basic
+  Settings** and check the number.
+- **Range limit no longer shrinks each time the options are saved** on a
+  metric Home Assistant (100 km became 99 km, then 98 km).
+
 ## [1.8.3] - 2026-11-10
 
 ### Changed

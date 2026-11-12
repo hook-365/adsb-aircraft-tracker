@@ -14,8 +14,10 @@ TOKENS: dict[str, str] = {
     "hex": "ICAO hex code",
     "type": "aircraft type, e.g. Boeing 737-800",
     "operator": "owner or operator",
-    "altitude": "altitude in feet, e.g. 3,000",
-    "speed": "ground speed in knots",
+    "altitude": "altitude as a number in your chosen units, e.g. 3,000",
+    "altitude_unit": "unit of the altitude: ft or m",
+    "speed": "ground speed as a number in your chosen units",
+    "speed_unit": "unit of the speed: kts, mph or km/h",
     "distance": "distance from home with its unit, e.g. 1.4 mi",
     "direction": "where it is from home, e.g. northwest",
     "heading": "where it is going, e.g. south",
@@ -33,15 +35,15 @@ TOKENS: dict[str, str] = {
 DEFAULTS: dict[str, tuple[str, str]] = {
     "military": (
         "🪖 MILITARY AIRCRAFT DETECTED",
-        "🪖 {name} at {altitude}ft {trend} {distance} away\nType: {type}\nSpeed: {speed}kts\nCallsign: {flight}\nDetected by: {reasons}",
+        "🪖 {name} at {altitude}{altitude_unit} {trend} {distance} away\nType: {type}\nSpeed: {speed}{speed_unit}\nCallsign: {flight}\nDetected by: {reasons}",
     ),
     "close_aircraft": (
         "✈️ LOW AIRCRAFT OVERHEAD",
-        "{emoji} {name} at {altitude}ft {trend} {distance} away\n{type} • {speed}kts\nFlight: {flight}\nOperator: {operator}",
+        "{emoji} {name} at {altitude}{altitude_unit} {trend} {distance} away\n{type} • {speed}{speed_unit}\nFlight: {flight}\nOperator: {operator}",
     ),
     "overhead": (
         "⬆️ AIRCRAFT OVERHEAD",
-        "⬆️ {name} at {altitude}ft, {where}\n{type} • {speed}kts heading {heading}\nOperator: {operator}",
+        "⬆️ {name} at {altitude}{altitude_unit}, {where}\n{type} • {speed}{speed_unit} heading {heading}\nOperator: {operator}",
     ),
     "emergency": (
         "⚠️ EMERGENCY SQUAWK",

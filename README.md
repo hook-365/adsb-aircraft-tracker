@@ -10,6 +10,11 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ## What's New
 
+**1.9.0 — Choose your units.** Aeronautical (nm, ft, kts), imperial (mi, ft,
+mph) or metric (km, m, km/h), set in **CONFIGURE → Units** and used on the
+cards, in notifications and voice answers, and for the alert thresholds; see
+[Units](#units). Nothing changes until you pick one.
+
 **1.8.3 — Plainer cards.** The dashboard cards no longer color aircraft by
 altitude: the colored strip on small photos is gone and airplane icons use
 your theme's primary color. Rows without a photo now line up with the rest.
@@ -57,7 +62,8 @@ offers you the update, so you can see what changed before you install it.
 - Detailed aircraft information (tail number, flight, altitude, speed, type)
 - Top 5 closest aircraft with comprehensive details
 - Aircraft type database with 85,000+ aircraft models
-- Distance and bearing measured from your Home Assistant home location, in real statute miles
+- Distance and bearing measured from your Home Assistant home location
+- Your choice of units: aeronautical (nm, ft, kts), imperial (mi, ft, mph) or metric (km, m, km/h)
 - Registration and aircraft type filled in from the tar1090-db database when the feeder doesn't send them (PiAware/dump1090-fa, bridges)
 - Flight route (origin/destination) for every aircraft with a callsign, as sensor attributes
 - Works with any readsb-style `aircraft.json` source (tar1090, readsb, dump1090-fa/SkyAware, or bridges from other receivers); the data path is auto-detected
@@ -122,9 +128,24 @@ offers you the update, so you can see what changed before you install it.
 2. **ADSB Port**: Port number (default: `8085`)
 3. **Data Path** (optional): Leave blank to auto-detect. Setup tries `/data/aircraft.json` (tar1090/readsb), `/tar1090/data/aircraft.json`, `/skyaware/data/aircraft.json`, `/dump1090-fa/data/aircraft.json`, `/dump1090/data/aircraft.json`, `/aircraft.json`, then `/`, and keeps the first one that returns aircraft JSON. Set it explicitly for adapters that serve data somewhere else.
 4. **Update Interval**: How often to fetch data (default: `10` seconds)
-5. **Distance Limit**: Aircraft range in miles (`0` = unlimited)
+5. **Distance Limit**: Aircraft range in miles, or kilometers if Home Assistant is set to metric (`0` = unlimited)
 
 Any source that returns readsb-style JSON (a top-level `"aircraft"` list with `hex`, `lat`/`lon`, `alt_baro`, `gs`, `track`, `flight`) works, including bridges from other services. Older dump1090 builds that use the legacy field names `altitude`, `speed` and `vert_rate` (such as the dump1090 bundled in the Flightradar24 feeder image) are read too. The content type doesn't matter; `text/plain` is accepted.
+
+### Units
+
+Go to **CONFIGURE → Units** to choose how distance, altitude and speed are shown:
+
+| Setting | Distance | Altitude | Speed |
+|---|---|---|---|
+| Automatic (default) | miles or kilometers, following Home Assistant | feet | knots |
+| Aeronautical | nautical miles | feet | knots |
+| Imperial | miles | feet | miles per hour |
+| Metric | kilometers | meters | kilometers per hour |
+
+The choice applies to the dashboard cards, notifications, voice answers, and the range and alert thresholds in the options (they are shown and entered in your units).
+
+The sensor attributes `distance_mi`, `altitude_ft` and `speed_kts` always stay in miles, feet and knots, so automations that compare them keep working whatever you pick. For text in your units, use `distance_display`, `altitude_display` and `speed_display`.
 
 ### Flightradar24 Receivers
 
@@ -372,7 +393,7 @@ The integration automatically sends mobile notifications for:
 - **Action**: Tap to open ADSB tracker
 
 ### Low Aircraft
-- **Trigger**: Aircraft within 2 miles and below 3,000 ft (both thresholds configurable in options)
+- **Trigger**: Aircraft within 2 miles and below 3,000 ft (both thresholds configurable in options, in your chosen [units](#units))
 - **Message**: Aircraft type, altitude, distance  
 - **Action**: Tap to open ADSB tracker
 
@@ -397,7 +418,7 @@ Details:
 - A narrow cone is crossed in less than one update at low altitude, so the aircraft's straight-line path until the next update is checked as well. The alert usually arrives just before the pass.
 - Each aircraft alerts once per pass: not again until it has been out of the cone for 5 minutes, so a circling aircraft or hovering helicopter alerts once.
 - An aircraft that matches both this and the Low Aircraft alert is announced once, by whichever fires first.
-- **Overhead maximum altitude** ignores aircraft above that altitude (feet), if you only want ones low enough to see or hear. 0 = no limit.
+- **Overhead maximum altitude** ignores aircraft above that altitude, if you only want ones low enough to see or hear. 0 = no limit.
 
 ### Emergency Squawks
 - **Trigger**: Aircraft broadcasting 7700, 7600, or 7500 codes
@@ -418,8 +439,10 @@ Put these in curly braces and they are filled in for each aircraft:
 | `{hex}` | ICAO hex code |
 | `{type}` | aircraft type, e.g. Boeing 737-800 |
 | `{operator}` | owner or operator |
-| `{altitude}` | altitude in feet, e.g. 3,000 |
-| `{speed}` | ground speed in knots |
+| `{altitude}` | altitude as a number in your chosen [units](#units), e.g. 3,000 |
+| `{altitude_unit}` | unit of the altitude: ft or m |
+| `{speed}` | ground speed as a number in your chosen units |
+| `{speed_unit}` | unit of the speed: kts, mph or km/h |
 | `{distance}` | distance from home with its unit, e.g. 1.4 mi |
 | `{direction}` | where it is from home, e.g. northwest |
 | `{heading}` | where it is going, e.g. south |

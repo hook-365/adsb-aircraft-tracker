@@ -9,14 +9,14 @@
           "adsb_port": "Port Number",
           "adsb_path": "Data Path (optional)",
           "update_interval": "Update Frequency (seconds)",
-          "distance_limit": "Aircraft Range Filter (miles/km)"
+          "distance_limit": "Aircraft Range Filter"
         },
         "data_description": {
           "adsb_host": "IP address of your ADSB feeder (e.g., 192.168.1.100). Find this in your feeder's web interface or network settings.",
           "adsb_port": "Port number where your feeder serves aircraft data. Default is 8085 for tar1090. Check your feeder's configuration if unsure.",
           "adsb_path": "Leave blank to auto-detect. Standard locations are tried in order: /data/aircraft.json (tar1090/readsb), /tar1090/data/aircraft.json, /skyaware/data/aircraft.json, /dump1090-fa/data/aircraft.json, /dump1090/data/aircraft.json, /aircraft.json, then the root /. Enter a path only if your feeder or adapter serves aircraft JSON somewhere else.",
           "update_interval": "How often to refresh aircraft data. Recommended: 10 seconds (range: 5-300). Lower values = more real-time data but higher system load.",
-          "distance_limit": "Maximum distance to track aircraft. Units (miles/kilometers) depend on your Home Assistant unit system. Set to 0 for unlimited range (tracks all aircraft your feeder can see). Typical range: 50-200 miles or 80-320 km depending on your antenna setup."
+          "distance_limit": "Maximum distance to track aircraft, in {distance_unit}. Set to 0 for unlimited range (tracks all aircraft your feeder can see). Typical range: 50-200 miles or 80-320 km depending on your antenna setup. You can pick other units later in the integration options."
         }
       },
       "summary": {
@@ -80,9 +80,19 @@
         },
         "data_description": {
           "update_interval": "How frequently to refresh aircraft data, in seconds. Recommended: 10 seconds for balance of real-time data vs system performance. Range: 5-300 seconds.",
-          "distance_limit": "Maximum tracking range. Units (miles/kilometers) depend on your Home Assistant unit system. Set to 0 for unlimited (all aircraft your feeder detects). Typical range: 50-200 miles or 80-320 km depending on your antenna setup.",
+          "distance_limit": "Maximum tracking range, in {distance_unit}. Set to 0 for unlimited (all aircraft your feeder detects). Typical range: 50-200 miles or 80-320 km depending on your antenna setup.",
           "route_api_contact": "Email address or URL sent to adsb.im in the User-Agent of flight-route lookups. adsb.im is a one-person hobby service and asks callers to identify themselves. Leave empty to send only the project URL.",
           "aircraft_photos": "Show a photo of each nearby or military aircraft from planespotters.net on the cards and in notifications. One small request per new airframe, cached for a day; photographer credit and a link to the photo page are included. The same contact is sent in the User-Agent."
+        }
+      },
+      "units": {
+        "title": "Units",
+        "description": "Choose the units for distance, altitude and speed. They are used on the dashboard cards, in notifications and voice answers, and for the range and alert thresholds in these settings.\n\nThe raw sensor attributes `distance_mi`, `altitude_ft` and `speed_kts` always stay in miles, feet and knots, so existing automations keep working. Use `distance_display`, `altitude_display` and `speed_display` for values in your chosen units.",
+        "data": {
+          "units": "📐 Units"
+        },
+        "data_description": {
+          "units": "Automatic is how the integration has always behaved: distance in miles or kilometers following your Home Assistant unit system, altitude in feet and speed in knots."
         }
       },
       "notifications_settings": {
@@ -105,11 +115,11 @@
           "external_url": "Website to open when tapping an alert. Defaults to your local ADSB feeder. Put {hex}, {flight} or {registration} in it to open that aircraft, e.g. https://my-tar1090/?icao={hex}",
           "military_notifications": "Get notified when military aircraft are detected nearby. Uses verified database with 16,000+ confirmed military aircraft to prevent false positives. Perfect for aviation enthusiasts and plane spotters.",
           "close_aircraft_enabled": "Receive alerts when aircraft pass very close overhead or at low altitude. Great for spotting interesting aircraft in your immediate area and monitoring air traffic patterns.",
-          "close_aircraft_distance": "Maximum distance for close aircraft notifications. Aircraft within this range (and below altitude threshold) will trigger alerts. Units match your Home Assistant system setting.",
-          "close_aircraft_altitude": "Maximum altitude for close aircraft notifications, in feet. Aircraft flying lower than this height will trigger alerts if also within distance range. Recommended: 1000-5000 feet.",
+          "close_aircraft_distance": "Maximum distance for close aircraft notifications, in {distance_unit}. Aircraft within this range (and below altitude threshold) will trigger alerts.",
+          "close_aircraft_altitude": "Maximum altitude for close aircraft notifications, in {altitude_unit}. Aircraft flying lower than this height will trigger alerts if also within distance range. Recommended: 1000-5000 feet (300-1500 meters).",
           "overhead_enabled": "Get notified when an aircraft passes almost straight above you, at any altitude. An aircraft that also triggers the close aircraft alert is announced once, not twice.",
           "overhead_angle": "How far from straight up still counts as overhead, in degrees (1-60). Smaller is stricter: 5 is directly above, 15 is 'look up', 45 is anywhere high in the sky.\n\n{overhead_guide}",
-          "overhead_max_altitude": "Ignore aircraft above this altitude, in feet, for overhead alerts. Useful if you only care about aircraft low enough to see or hear. 0 means no limit.",
+          "overhead_max_altitude": "Ignore aircraft above this altitude, in {altitude_unit}, for overhead alerts. Useful if you only care about aircraft low enough to see or hear. 0 means no limit.",
           "emergency_notifications": "Receive immediate alerts for aviation emergency codes: 7700 (general emergency), 7600 (radio failure), 7500 (hijack). These are critical aviation safety signals that are rare but important to monitor."
         }
       },
@@ -126,6 +136,16 @@
           "emergency_title": "🚨 Emergency alert title",
           "emergency_message": "🚨 Emergency alert message"
         }
+      }
+    }
+  },
+  "selector": {
+    "units": {
+      "options": {
+        "auto": "Automatic (distance from Home Assistant, altitude in feet, speed in knots)",
+        "aeronautical": "Aeronautical (nautical miles, feet, knots)",
+        "imperial": "Imperial (miles, feet, miles per hour)",
+        "metric": "Metric (kilometers, meters, kilometers per hour)"
       }
     }
   },

@@ -59,6 +59,10 @@ ALERT_TEXT_OPTIONS = {
 # Contact (email or URL) sent to adsb.im in the User-Agent of route lookups.
 # They ask callers for one; empty = the project URL only, never the author's.
 CONF_ROUTE_API_CONTACT = "route_api_contact"
+# Display units: auto (distance follows Home Assistant, altitude in feet,
+# speed in knots), aeronautical, imperial or metric. See units.py.
+CONF_UNITS = "units"
+DEFAULT_UNITS = "auto"
 # Aircraft photos from planespotters.net (nearest aircraft + military)
 CONF_AIRCRAFT_PHOTOS = "aircraft_photos"
 

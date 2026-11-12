@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from .const import AIRLINE_CODE_MAP, AVIATION_ABBREVIATIONS
+from .units import AUTO_HA_IMPERIAL, UnitSystem
 
 # Colloquial model names that sound natural when spoken by TTS.
 # Maps "full model" fragments to spoken-friendly replacements.
@@ -309,26 +310,32 @@ def format_vertical_trend(vertical_rate_fpm: int | float | None) -> str | None:
         return "in level flight"
 
 
-def format_speed_for_tts(speed_kts: float | None) -> str | None:
-    """Format speed as a TTS-friendly phrase.
+def format_speed_for_tts(
+    speed_kts: float | None, units: UnitSystem = AUTO_HA_IMPERIAL
+) -> str | None:
+    """Format speed as a TTS-friendly phrase, spoken in `units`.
 
     Returns None if speed is unavailable or zero.
     """
     if not speed_kts:
         return None
 
-    speed = int(speed_kts)
-    if speed >= 250:
-        return f"cruising at {speed} knots"
-    else:
-        return f"at {speed} knots"
+    spoken = units.speak_speed(int(speed_kts))
+    # "cruising" is about the aircraft, so it is judged in knots whatever
+    # unit is spoken
+    if speed_kts >= 250:
+        return f"cruising at {spoken}"
+    return f"at {spoken}"
 
 
 def format_altitude_with_trend(
     altitude_ft: int | float | None,
     vertical_rate_fpm: int | float | None,
+    units: UnitSystem = AUTO_HA_IMPERIAL,
 ) -> str | None:
     """Format altitude with context-aware verb based on vertical trend.
+
+    The altitude is spoken in `units` (feet unless told otherwise).
 
     Examples:
         (32000, 0)    -> "at 32,000 feet"
@@ -338,7 +345,7 @@ def format_altitude_with_trend(
     if not altitude_ft or not isinstance(altitude_ft, (int, float)) or altitude_ft <= 0:
         return None
 
-    alt_str = f"{int(altitude_ft):,} feet"
+    alt_str = units.speak_altitude(int(altitude_ft))
 
     if vertical_rate_fpm is not None:
         if vertical_rate_fpm > 300:
