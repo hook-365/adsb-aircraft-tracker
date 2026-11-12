@@ -10,10 +10,9 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ## What's New
 
-**1.9.0 — Choose your units.** Aeronautical (nm, ft, kts), imperial (mi, ft,
-mph) or metric (km, m, km/h), set in **CONFIGURE → Units** and used on the
-cards, in notifications and voice answers, and for the alert thresholds; see
-[Units](#units). Nothing changes until you pick one.
+**1.9.0 — Choose your units.** Aeronautical, imperial or metric, in
+**CONFIGURE → Units**; see [Units](#units). Thanks to
+[@medivb](https://github.com/medivb) for the request.
 
 **1.8.3 — Plainer cards.** The dashboard cards no longer color aircraft by
 altitude: the colored strip on small photos is gone and airplane icons use

@@ -20,7 +20,7 @@ versions follow [Semantic Versioning](https://semver.org/).
   answers, and the range and alert thresholds in the options, which are now
   shown and entered in your units. The default, Automatic, is what the
   integration did before: distance follows Home Assistant, altitude in feet,
-  speed in knots. (#9)
+  speed in knots. Requested by @medivb in #9.
 - **`altitude_display` and `speed_display` attributes** on the aircraft
   sensors, next to `distance_display`: the value in your units, ready to
   show. `distance_mi`, `altitude_ft` and `speed_kts` are unchanged and
