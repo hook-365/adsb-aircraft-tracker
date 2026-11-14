@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-14
+
 ### Added
 - **Watched aircraft.** Your own list of aircraft to be alerted about: put
   tail numbers, ICAO hex codes or callsigns in **CONFIGURE → Notifications →
@@ -211,7 +213,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.10.0
 [1.9.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.9.0
 [1.8.3]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.3
 [1.8.2]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.2
