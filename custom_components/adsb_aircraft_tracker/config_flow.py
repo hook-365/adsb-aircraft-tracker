@@ -39,6 +39,7 @@ from .const import (
     CONF_OVERHEAD_ENABLED,
     CONF_OVERHEAD_ANGLE,
     CONF_OVERHEAD_MAX_ALTITUDE,
+    CONF_WATCHLIST,
     ALERT_TEXT_OPTIONS,
     CONF_ROUTE_API_CONTACT,
     CONF_AIRCRAFT_PHOTOS,
@@ -61,7 +62,7 @@ from .const import (
     OVERHEAD_DIAGRAM_URL,
 )
 
-from . import alert_text
+from . import alert_text, watchlist
 from .geo import cone_footprint_mi, cone_sky_share
 from .units import UNIT_PRESETS, UnitSystem, resolve as resolve_units
 
@@ -600,6 +601,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 if key in user_input:
                     user_input[key] = _edited(user_input[key], shown, stored, convert)
 
+            # A cleared field is left out of user_input; store it as empty so
+            # the merge below doesn't keep the old list
+            user_input[CONF_WATCHLIST] = watchlist.clean(user_input.get(CONF_WATCHLIST))
+
             # Merge over existing options — each step only edits its own
             # fields, so replacing wholesale would wipe the other step's
             return self.async_create_entry(
@@ -631,6 +636,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Range(min=0, max=units.altitude_to_display(MAX_OVERHEAD_ALTITUDE_FT)),
                 ),
                 vol.Optional(CONF_EMERGENCY_NOTIFICATIONS, default=current_emergency): bool,
+                vol.Optional(
+                    CONF_WATCHLIST,
+                    description={"suggested_value": current_options.get(CONF_WATCHLIST) or ""},
+                ): str,
             }
         )
 

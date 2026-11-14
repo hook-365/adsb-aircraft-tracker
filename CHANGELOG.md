@@ -10,6 +10,14 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Watched aircraft.** Your own list of aircraft to be alerted about: put
+  tail numbers, ICAO hex codes or callsigns in **CONFIGURE → Notifications →
+  Watched Aircraft**, separated by commas, and you get a notification
+  whenever one of them comes into range. Once per visit, with the photo and
+  tap-through link like the other alerts, and its own title and message in
+  **Alert Wording**. Requested by @Dtrieb in #10.
+
 ## [1.9.0] - 2026-11-12
 
 ### Added

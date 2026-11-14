@@ -108,7 +108,8 @@
           "overhead_enabled": "⬆️ Overhead Alerts",
           "overhead_angle": "📐 Overhead Angle",
           "overhead_max_altitude": "🔝 Overhead Maximum Altitude",
-          "emergency_notifications": "🚨 Emergency Squawk Alerts"
+          "emergency_notifications": "🚨 Emergency Squawk Alerts",
+          "watchlist": "⭐ Watched Aircraft"
         },
         "data_description": {
           "notification_device": "Pick one or more notify services: phones with the Home Assistant mobile app, and any notify groups you have defined. Every alert goes to all of them. Leave empty to disable notifications.",
@@ -120,7 +121,8 @@
           "overhead_enabled": "Get notified when an aircraft passes almost straight above you, at any altitude. An aircraft that also triggers the close aircraft alert is announced once, not twice.",
           "overhead_angle": "How far from straight up still counts as overhead, in degrees (1-60). Smaller is stricter: 5 is directly above, 15 is 'look up', 45 is anywhere high in the sky.\n\n{overhead_guide}",
           "overhead_max_altitude": "Ignore aircraft above this altitude, in {altitude_unit}, for overhead alerts. Useful if you only care about aircraft low enough to see or hear. 0 means no limit.",
-          "emergency_notifications": "Receive immediate alerts for aviation emergency codes: 7700 (general emergency), 7600 (radio failure), 7500 (hijack). These are critical aviation safety signals that are rare but important to monitor."
+          "emergency_notifications": "Receive immediate alerts for aviation emergency codes: 7700 (general emergency), 7600 (radio failure), 7500 (hijack). These are critical aviation safety signals that are rare but important to monitor.",
+          "watchlist": "Your own list of aircraft to be alerted about whenever one comes into range: tail numbers (registrations), ICAO hex codes or callsigns, separated by commas, e.g. N628TS, 3C6444, RCH285. Upper or lower case and dashes don't matter. Leave empty for no watched-aircraft alerts."
         }
       },
       "alert_text": {
@@ -134,7 +136,9 @@
           "overhead_title": "⬆️ Overhead alert title",
           "overhead_message": "⬆️ Overhead alert message",
           "emergency_title": "🚨 Emergency alert title",
-          "emergency_message": "🚨 Emergency alert message"
+          "emergency_message": "🚨 Emergency alert message",
+          "watchlist_title": "⭐ Watched aircraft alert title",
+          "watchlist_message": "⭐ Watched aircraft alert message"
         }
       }
     }

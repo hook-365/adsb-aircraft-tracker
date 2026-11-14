@@ -21,6 +21,7 @@ from .const import (
     CONF_OVERHEAD_ENABLED,
     CONF_OVERHEAD_ANGLE,
     CONF_OVERHEAD_MAX_ALTITUDE,
+    CONF_WATCHLIST,
     ALERT_TEXT_OPTIONS,
     DEFAULT_MILITARY_NOTIFICATIONS,
     DEFAULT_CLOSE_AIRCRAFT_ENABLED,
@@ -32,7 +33,7 @@ from .const import (
     DEFAULT_OVERHEAD_MAX_ALTITUDE,
     DEFAULT_UPDATE_INTERVAL,
 )
-from . import alert_text
+from . import alert_text, watchlist
 from .coordinator import ADSBDataUpdateCoordinator
 from .geo import distance_and_bearing, min_ground_distance_ahead, zenith_angle
 from .tts_format import heading_to_cardinal
@@ -41,6 +42,10 @@ from .units import M_TO_FT
 # One alert per aircraft pass: an aircraft that was overhead (or already got
 # the low-aircraft alert) is not announced again for this long.
 OVERHEAD_RENOTIFY_SECONDS = 300
+# A watched aircraft is announced when it shows up and not again until it
+# has been out of range for this long, so one flickering at the edge of
+# reception alerts once.
+WATCHLIST_RENOTIFY_SECONDS = 900
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,7 +68,9 @@ class ADSBNotificationManager:
         self._last_emergency_aircraft: set[tuple[str, str]] = set()
         # hex -> monotonic time it was last inside the overhead cone
         self._overhead_last_seen: dict[str, float] = {}
-        
+        # hex -> monotonic time a watched aircraft was last in range
+        self._watchlist_last_seen: dict[str, float] = {}
+
     @property
     def notification_devices(self) -> list[str]:
         """Configured notify services (mobile devices and/or notify groups).
@@ -177,6 +184,11 @@ class ADSBNotificationManager:
         )
         return DEFAULT_OVERHEAD_MAX_ALTITUDE if value is None else value
 
+    @property
+    def watched_aircraft(self) -> frozenset[str]:
+        """The user's watchlist as comparison keys; empty = alert off."""
+        return watchlist.keys(self.config_entry.options.get(CONF_WATCHLIST))
+
     def _text_values(self, aircraft: dict[str, Any], **extra: Any) -> dict[str, str]:
         """Values for the {tokens} of a custom alert title or message."""
         flight = (aircraft.get("flight") or "").strip()
@@ -256,7 +268,14 @@ class ADSBNotificationManager:
         # Check for emergency squawk notifications
         if self.emergency_notifications_enabled:
             await self._check_emergency_squawks(aircraft_list)
-    
+
+        # Check for the user's own watched aircraft
+        watched = self.watched_aircraft
+        if watched:
+            await self._check_watchlist(aircraft_list, watched)
+        else:
+            self._watchlist_last_seen = {}
+
     async def _check_military_aircraft(self, aircraft_list: list[dict[str, Any]]) -> None:
         """Check and notify about military aircraft."""
         military_aircraft = self.coordinator.detect_military_aircraft(aircraft_list)
@@ -396,6 +415,30 @@ class ADSBNotificationManager:
 
         self._last_emergency_aircraft = current
     
+    async def _check_watchlist(
+        self, aircraft_list: list[dict[str, Any]], watched: frozenset[str]
+    ) -> None:
+        """Notify when an aircraft on the user's watchlist comes into range.
+
+        Once per visit: not again until the aircraft has been gone for
+        WATCHLIST_RENOTIFY_SECONDS.
+        """
+        now_ts = time.monotonic()
+        for plane in aircraft_list or []:
+            hex_code = plane.get("hex")
+            if not hex_code or not watchlist.match(plane, watched):
+                continue
+            last = self._watchlist_last_seen.get(hex_code)
+            self._watchlist_last_seen[hex_code] = now_ts
+            if last is None:
+                await self._send_watchlist_notification(plane)
+
+        self._watchlist_last_seen = {
+            hex_code: seen
+            for hex_code, seen in self._watchlist_last_seen.items()
+            if now_ts - seen <= WATCHLIST_RENOTIFY_SECONDS
+        }
+
     async def _send_military_notification(self, aircraft: dict[str, Any]) -> None:
         """Send military aircraft notification."""
         tail = aircraft.get("tail", "Unknown")
@@ -570,6 +613,45 @@ class ADSBNotificationManager:
             aircraft=aircraft,
         )
     
+    async def _send_watchlist_notification(self, aircraft: dict[str, Any]) -> None:
+        """Send the "one of your watched aircraft is here" notification."""
+        tail = aircraft.get("tail") or "Unknown"
+        flight = (aircraft.get("flight") or "").strip()
+        # Watched by hex code and nothing else known: show the hex code
+        identifier = flight or (tail if tail != "Unknown" else (aircraft.get("hex") or "").upper())
+        units = self.coordinator.units
+        description = aircraft.get("description") or "Unknown aircraft"
+        vrate = aircraft.get("vertical_rate_fpm") or 0
+        trend = "↗️" if vrate > 500 else "↘️" if vrate < -500 else "→"
+
+        message = (
+            f"⭐ {identifier} at {units.altitude_text(aircraft.get('altitude_ft') or 0)}"
+            f"{units.altitude_label} {trend}"
+        )
+        # No position yet (Mode S only): leave the distance out
+        if aircraft.get("distance_mi"):
+            message += f" {units.format_distance(aircraft['distance_mi'])} away"
+        message += (
+            f"\n{description} • {units.speed_text(aircraft.get('speed_kts') or 0)}{units.speed_label}"
+        )
+        if tail not in ("Unknown", identifier):
+            message += f"\nTail: {tail}"
+        operator = aircraft.get("operator")
+        if operator and operator != "Unknown":
+            message += f"\nOperator: {operator}"
+
+        title, message = self._alert_text(
+            "watchlist", "⭐ WATCHED AIRCRAFT", message, aircraft, emoji="⭐"
+        )
+        await self._send_notification(
+            title=title,
+            message=message,
+            notification_icon="mdi:star",
+            color="yellow",
+            image=aircraft.get("photo_large"),
+            aircraft=aircraft,
+        )
+
     async def _send_notification(
         self,
         title: str,

@@ -22,7 +22,7 @@ TOKENS: dict[str, str] = {
     "direction": "where it is from home, e.g. northwest",
     "heading": "where it is going, e.g. south",
     "trend": "↗️ climbing, ↘️ descending, → level",
-    "emoji": "icon for the alert or aircraft (🚁 🛫 🛬 🛩️ ✈️ 🪖 ⬆️ ⚠️)",
+    "emoji": "icon for the alert or aircraft (🚁 🛫 🛬 🛩️ ✈️ 🪖 ⬆️ ⚠️ ⭐)",
     "angle": "degrees from straight up (overhead alert)",
     "where": "e.g. \"13° from straight up\" (overhead alert)",
     "squawk": "squawk code (emergency alert)",
@@ -48,6 +48,10 @@ DEFAULTS: dict[str, tuple[str, str]] = {
     "emergency": (
         "⚠️ EMERGENCY SQUAWK",
         "{name} squawking {squawk} ({emergency}) at {distance}",
+    ),
+    "watchlist": (
+        "⭐ WATCHED AIRCRAFT",
+        "⭐ {name} at {altitude}{altitude_unit} {trend} {distance} away\n{type} • {speed}{speed_unit}\nTail: {tail}\nOperator: {operator}",
     ),
 }
 

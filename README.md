@@ -10,6 +10,12 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ## What's New
 
+**1.10.0 — Watched aircraft.** Get an alert whenever an aircraft on your own
+list of tail numbers, ICAO hex codes or callsigns comes into range; set it in
+**CONFIGURE → Notifications → Watched Aircraft**, see
+[Watched aircraft](#watched-aircraft). Thanks to
+[@Dtrieb](https://github.com/Dtrieb) for the suggestion.
+
 **1.9.0 — Choose your units.** Aeronautical, imperial or metric, in
 **CONFIGURE → Units**; see [Units](#units). Thanks to
 [@medivb](https://github.com/medivb) for the request.
@@ -73,6 +79,7 @@ offers you the update, so you can see what changed before you install it.
 - Overhead alerts when an aircraft is almost straight above you, at any altitude (off by default)
 - Your own wording for every alert title and message
 - Emergency squawk code notifications (7700/7600/7500)
+- Watched aircraft: alerts for your own list of tail numbers, hex codes or callsigns
 - Customizable external ADSB URL links
 
 🗣️ **Voice / Assist Support**
@@ -161,6 +168,7 @@ After initial setup, click **CONFIGURE** on your integration to access advanced 
 - **Devices for alerts**: one or more notify services. Phones with the Home Assistant mobile app and any [notify groups](https://www.home-assistant.io/integrations/group/#notify-groups) you have defined are listed; every alert goes to all of them
 - **External URL**: website an alert opens when tapped. Defaults to your feeder. Put `{hex}`, `{flight}` or `{registration}` in it to open that aircraft, e.g. `https://my-tar1090/?icao={hex}`
 - **Overhead alerts** (default off), **Overhead angle** (default 15°) and **Overhead maximum altitude** (default no limit):: see [Overhead](#overhead)
+- **Watched Aircraft** (default empty): your own list of tail numbers, ICAO hex codes or callsigns to be alerted about; see [Watched aircraft](#watched-aircraft)
 - **Update Interval**: Adjust data refresh frequency
 - **Distance Limit**: Set maximum tracking range
 - **Aircraft photos** (default on): look up a photo of each nearby or military airframe on [planespotters.net](https://www.planespotters.net) for the cards and notifications. One request per newly seen airframe, nearest five plus military only, cached 24 hours either way; photographer credit and a link to the photo page are shown, as their API terms ask. The route lookup contact below is sent in the User-Agent here too.
@@ -424,6 +432,25 @@ Details:
 - **Message**: Emergency type and aircraft details
 - **Action**: Tap to open ADSB tracker
 
+### Watched aircraft
+- **Trigger**: an aircraft on your own list comes into range. Empty by default; fill it in under **CONFIGURE → Notifications → Watched Aircraft**
+- **Message**: aircraft, altitude, distance, type, speed, tail number and operator
+- **Action**: Tap to open ADSB tracker
+
+The list takes tail numbers (registrations), ICAO hex codes and callsigns, separated by commas:
+
+```
+N628TS, 3C6444, RCH285
+```
+
+Details:
+- Upper or lower case and dashes don't matter: `d-aima`, `D-AIMA` and `DAIMA` are the same.
+- A tail number or hex code follows one airframe. A callsign follows a flight number, whichever airframe flies it. Entries must match in full; `N628` does not match `N628TS`.
+- Tail numbers need a feeder that sends registrations (readsb, tar1090) or the downloaded aircraft database, which the integration uses automatically. The hex code always works.
+- Each aircraft alerts once per visit: not again until it has been out of range for 15 minutes.
+- Only aircraft inside your **Distance Limit** count, like every other alert.
+- A watched aircraft that is also military, low or overhead gets those alerts too.
+
 ### Your own wording
 
 Every alert has a built-in title and message. To change them, go to **CONFIGURE → Alert Wording** and edit the title and/or message of the alerts you want to reword.
@@ -446,7 +473,7 @@ Put these in curly braces and they are filled in for each aircraft:
 | `{direction}` | where it is from home, e.g. northwest |
 | `{heading}` | where it is going, e.g. south |
 | `{trend}` | ↗️ climbing, ↘️ descending, → level |
-| `{emoji}` | icon for the alert or aircraft (🚁 🛫 🛬 🛩️ ✈️ 🪖 ⬆️ ⚠️) |
+| `{emoji}` | icon for the alert or aircraft (🚁 🛫 🛬 🛩️ ✈️ 🪖 ⬆️ ⚠️ ⭐) |
 | `{angle}` | degrees from straight up (overhead alert) |
 | `{where}` | e.g. "13° from straight up" (overhead alert) |
 | `{squawk}` | squawk code (emergency alert) |

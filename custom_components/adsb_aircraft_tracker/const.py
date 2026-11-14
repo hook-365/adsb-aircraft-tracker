@@ -49,12 +49,15 @@ CONF_EMERGENCY_NOTIFICATIONS = "emergency_notifications"
 CONF_OVERHEAD_ENABLED = "overhead_enabled"
 CONF_OVERHEAD_ANGLE = "overhead_angle"
 CONF_OVERHEAD_MAX_ALTITUDE = "overhead_max_altitude"
+# Watched aircraft: the user's own list of tail numbers, ICAO hex codes or
+# callsigns, as one comma-separated string. Empty = no watchlist alert.
+CONF_WATCHLIST = "watchlist"
 
 # Custom alert wording: alert kind -> (title option, message option).
 # Empty or unset means the built-in text.
 ALERT_TEXT_OPTIONS = {
     kind: (f"{kind}_title", f"{kind}_message")
-    for kind in ("military", "close_aircraft", "overhead", "emergency")
+    for kind in ("military", "close_aircraft", "overhead", "emergency", "watchlist")
 }
 # Contact (email or URL) sent to adsb.im in the User-Agent of route lookups.
 # They ask callers for one; empty = the project URL only, never the author's.
