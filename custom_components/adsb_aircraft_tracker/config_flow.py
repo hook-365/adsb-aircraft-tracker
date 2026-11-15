@@ -63,6 +63,10 @@ from .const import (
 )
 
 from . import alert_text, watchlist
+
+# Form-only field on the alert wording page: alert kinds to put back to the
+# built-in wording
+CONF_RESET_WORDING = "reset_wording"
 from .geo import cone_footprint_mi, cone_sky_share
 from .units import UNIT_PRESETS, UnitSystem, resolve as resolve_units
 
@@ -669,6 +673,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             # A cleared field is left out of user_input; store it as empty so
             # the merge below doesn't keep the old wording
             texts = {key: (user_input.get(key) or "").strip() for key in keys}
+            # Alerts ticked under "Restore built-in wording" lose their custom
+            # text whatever is still in their fields
+            for kind in user_input.get(CONF_RESET_WORDING) or []:
+                for key in ALERT_TEXT_OPTIONS.get(kind, ()):
+                    texts[key] = ""
             # Wording left as pre-filled is stored as "built-in", which keeps
             # following the built-in text if a later release changes it
             for key, default in defaults.items():
@@ -688,6 +697,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             fields[vol.Optional(
                 message_key, description={"suggested_value": current_options.get(message_key) or defaults[message_key]}
             )] = TextSelector(TextSelectorConfig(multiline=True))
+        # Options dialogs can't carry extra buttons, so resetting is a set of
+        # checkboxes applied on submit. Never stored: not one of `keys`.
+        fields[vol.Optional(CONF_RESET_WORDING)] = SelectSelector(
+            SelectSelectorConfig(
+                options=list(ALERT_TEXT_OPTIONS),
+                multiple=True,
+                mode=SelectSelectorMode.LIST,
+                translation_key="alert_kinds",
+            )
+        )
 
         return self.async_show_form(
             step_id="alert_text",

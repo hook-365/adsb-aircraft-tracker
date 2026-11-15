@@ -10,6 +10,11 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Restore built-in wording.** The **Alert Wording** page has a checklist at
+  the bottom: tick an alert and press Submit to put its title and message
+  back to the built-in text. Requested by @Dtrieb in #11.
+
 ## [1.10.0] - 2026-11-14
 
 ### Added

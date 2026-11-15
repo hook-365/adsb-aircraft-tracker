@@ -127,7 +127,7 @@
       },
       "alert_text": {
         "title": "Alert Wording",
-        "description": "Change the title and message of each kind of alert. The fields start with the built-in wording; clear one to go back to it. Put any of these in curly braces and they are filled in per aircraft; a line whose values are all unknown is left out.\n\n{alert_text_guide}",
+        "description": "Change the title and message of each kind of alert. The fields start with the built-in wording; clear one to go back to it, or tick the alert under **Restore built-in wording** at the bottom. Put any of these in curly braces and they are filled in per aircraft; a line whose values are all unknown is left out.\n\n{alert_text_guide}",
         "data": {
           "military_title": "🪖 Military alert title",
           "military_message": "🪖 Military alert message",
@@ -138,7 +138,11 @@
           "emergency_title": "🚨 Emergency alert title",
           "emergency_message": "🚨 Emergency alert message",
           "watchlist_title": "⭐ Watched aircraft alert title",
-          "watchlist_message": "⭐ Watched aircraft alert message"
+          "watchlist_message": "⭐ Watched aircraft alert message",
+          "reset_wording": "↩️ Restore built-in wording"
+        },
+        "data_description": {
+          "reset_wording": "Tick an alert and press Submit to put its title and message back to the built-in wording."
         }
       }
     }
@@ -150,6 +154,15 @@
         "aeronautical": "Aeronautical (nautical miles, feet, knots)",
         "imperial": "Imperial (miles, feet, miles per hour)",
         "metric": "Metric (kilometers, meters, kilometers per hour)"
+      }
+    },
+    "alert_kinds": {
+      "options": {
+        "military": "🪖 Military alert",
+        "close_aircraft": "✈️ Close aircraft alert",
+        "overhead": "⬆️ Overhead alert",
+        "emergency": "🚨 Emergency alert",
+        "watchlist": "⭐ Watched aircraft alert"
       }
     }
   },

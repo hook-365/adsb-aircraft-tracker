@@ -488,7 +488,7 @@ For example, a close aircraft message of
 Operator: {operator}
 ```
 
-sends "🛬 UAL12 is 1.4 mi to the northwest at 2,500 ft / Boeing 737-800, heading south / Operator: United Airlines". A line whose values are all unknown is left out, so the operator line disappears when the operator isn't known. The fields start out filled with the built-in wording, so you can edit it in place; clear a field to go back to it.
+sends "🛬 UAL12 is 1.4 mi to the northwest at 2,500 ft / Boeing 737-800, heading south / Operator: United Airlines". A line whose values are all unknown is left out, so the operator line disappears when the operator isn't known. The fields start out filled with the built-in wording, so you can edit it in place. To go back to the built-in wording, clear the field, or tick the alert under **Restore built-in wording** at the bottom of the page and press Submit.
 
 ## Automation Examples
 
