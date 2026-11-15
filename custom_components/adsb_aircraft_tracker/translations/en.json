@@ -109,7 +109,9 @@
           "overhead_angle": "📐 Overhead Angle",
           "overhead_max_altitude": "🔝 Overhead Maximum Altitude",
           "emergency_notifications": "🚨 Emergency Squawk Alerts",
-          "watchlist": "⭐ Watched Aircraft"
+          "watchlist": "⭐ Watched Aircraft",
+          "watchlist_types": "⭐ Watched Aircraft Types",
+          "watchlist_operators": "⭐ Watched Operators"
         },
         "data_description": {
           "notification_device": "Pick one or more notify services: phones with the Home Assistant mobile app, and any notify groups you have defined. Every alert goes to all of them. Leave empty to disable notifications.",
@@ -122,7 +124,27 @@
           "overhead_angle": "How far from straight up still counts as overhead, in degrees (1-60). Smaller is stricter: 5 is directly above, 15 is 'look up', 45 is anywhere high in the sky.\n\n{overhead_guide}",
           "overhead_max_altitude": "Ignore aircraft above this altitude, in {altitude_unit}, for overhead alerts. Useful if you only care about aircraft low enough to see or hear. 0 means no limit.",
           "emergency_notifications": "Receive immediate alerts for aviation emergency codes: 7700 (general emergency), 7600 (radio failure), 7500 (hijack). These are critical aviation safety signals that are rare but important to monitor.",
-          "watchlist": "Your own list of aircraft to be alerted about whenever one comes into range: tail numbers (registrations), ICAO hex codes or callsigns, separated by commas, e.g. N628TS, 3C6444, RCH285. Upper or lower case and dashes don't matter. Leave empty for no watched-aircraft alerts."
+          "watchlist": "Your own list of aircraft to be alerted about whenever one comes into range: tail numbers (registrations), ICAO hex codes or callsigns, separated by commas, e.g. N628TS, 3C6444, RCH285. Upper or lower case and dashes don't matter. Leave empty for no watched-aircraft alerts.",
+          "watchlist_types": "Also alert for every aircraft of these types, whichever tail number it has: ICAO type codes separated by commas, e.g. B52, C17, A388. End a code with a star for everything that starts that way: B74* is every 747. Leave empty for none.",
+          "watchlist_operators": "Also alert for aircraft of these owners or operators, separated by commas, e.g. NASA, Air Force. An entry matches when it is part of the operator name the feeder reports, in any case. Needs a feeder that sends operators (readsb or tar1090 with the extended database). Leave empty for none."
+        }
+      },
+      "quiet_hours": {
+        "title": "Quiet Hours & Snooze",
+        "description": "Keep alerts from waking you up. During quiet hours the alerts you tick below send no notification. Each alert still fires its `adsb_aircraft_tracker_alert` event, so automations keep working.",
+        "data": {
+          "quiet_hours_enabled": "🌙 Quiet hours",
+          "quiet_hours_start": "Quiet from",
+          "quiet_hours_end": "Quiet until",
+          "quiet_hours_alerts": "Alerts that stay quiet",
+          "snooze_minutes": "🔕 Snooze time"
+        },
+        "data_description": {
+          "quiet_hours_enabled": "Turn quiet hours on or off without losing the times below.",
+          "quiet_hours_start": "Local time the quiet hours begin.",
+          "quiet_hours_end": "Local time they end. Earlier than the start means the next morning, e.g. 22:00 to 07:00.",
+          "quiet_hours_alerts": "Only the ticked alerts are silenced. Emergency squawks and your watched aircraft come through unless you tick them too.",
+          "snooze_minutes": "Every alert notification has a Snooze button that silences that kind of alert for this many minutes (emergency squawks have none). 0 removes the button."
         }
       },
       "alert_text": {
@@ -280,6 +302,24 @@
     "install_sentences": {
       "name": "Install Voice Sentences",
       "description": "Install custom sentence triggers for aircraft voice queries. Restart Home Assistant after running for sentences to take effect."
+    },
+    "snooze_alerts": {
+      "name": "Snooze Alerts",
+      "description": "Stop alert notifications for a while. Alert events still fire, so automations keep working. A duration of 0 turns the alerts back on.",
+      "fields": {
+        "duration": {
+          "name": "Duration",
+          "description": "Minutes to stay silent. Leave empty for the snooze time set in the options; 0 ends the snooze."
+        },
+        "alerts": {
+          "name": "Alerts",
+          "description": "Which alerts to snooze. Leave empty for all of them except emergency squawks."
+        },
+        "confirm": {
+          "name": "Tell the devices",
+          "description": "Send a short notification saying which alerts are off and until when."
+        }
+      }
     }
   }
 }

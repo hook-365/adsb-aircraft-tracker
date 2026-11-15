@@ -53,12 +53,49 @@ CONF_OVERHEAD_MAX_ALTITUDE = "overhead_max_altitude"
 # callsigns, as one comma-separated string. Empty = no watchlist alert.
 CONF_WATCHLIST = "watchlist"
 
+# More ways onto the watchlist: ICAO type codes (B52, C17, B74* with a star
+# for "anything starting with") and operator names (matched as part of the
+# operator the feeder reports). Comma-separated strings like the list itself.
+CONF_WATCHLIST_TYPES = "watchlist_types"
+CONF_WATCHLIST_OPERATORS = "watchlist_operators"
+
+# Every kind of alert, in the order they are listed in the dialogs
+ALERT_KINDS = ("military", "close_aircraft", "overhead", "emergency", "watchlist")
+# Plain names for messages about an alert kind ("Low aircraft alerts are off")
+ALERT_KIND_NAMES = {
+    "military": "Military aircraft",
+    "close_aircraft": "Low aircraft",
+    "overhead": "Overhead",
+    "emergency": "Emergency squawk",
+    "watchlist": "Watched aircraft",
+}
+
 # Custom alert wording: alert kind -> (title option, message option).
 # Empty or unset means the built-in text.
 ALERT_TEXT_OPTIONS = {
-    kind: (f"{kind}_title", f"{kind}_message")
-    for kind in ("military", "close_aircraft", "overhead", "emergency", "watchlist")
+    kind: (f"{kind}_title", f"{kind}_message") for kind in ALERT_KINDS
 }
+
+# Quiet hours: between start and end (local time, may run past midnight) the
+# alert kinds listed in CONF_QUIET_ALERTS send no notification. The event
+# still fires, so automations keep working.
+CONF_QUIET_ENABLED = "quiet_hours_enabled"
+CONF_QUIET_START = "quiet_hours_start"
+CONF_QUIET_END = "quiet_hours_end"
+CONF_QUIET_ALERTS = "quiet_hours_alerts"
+DEFAULT_QUIET_ENABLED = False
+DEFAULT_QUIET_START = "22:00:00"
+DEFAULT_QUIET_END = "07:00:00"
+# Emergencies and the user's own watchlist come through unless they say otherwise
+DEFAULT_QUIET_ALERTS = ["military", "close_aircraft", "overhead"]
+# How long the "Snooze" button on a notification silences that kind of alert;
+# 0 = no snooze button
+CONF_SNOOZE_MINUTES = "snooze_minutes"
+DEFAULT_SNOOZE_MINUTES = 60
+MAX_SNOOZE_MINUTES = 1440
+
+# Fired on the Home Assistant event bus for every alert, sent or silenced
+EVENT_ALERT = f"{DOMAIN}_alert"
 # Contact (email or URL) sent to adsb.im in the User-Agent of route lookups.
 # They ask callers for one; empty = the project URL only, never the author's.
 CONF_ROUTE_API_CONTACT = "route_api_contact"

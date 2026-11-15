@@ -20,6 +20,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
+    TimeSelector,
 )
 
 from .const import (
@@ -40,6 +41,20 @@ from .const import (
     CONF_OVERHEAD_ANGLE,
     CONF_OVERHEAD_MAX_ALTITUDE,
     CONF_WATCHLIST,
+    CONF_WATCHLIST_TYPES,
+    CONF_WATCHLIST_OPERATORS,
+    CONF_QUIET_ENABLED,
+    CONF_QUIET_START,
+    CONF_QUIET_END,
+    CONF_QUIET_ALERTS,
+    CONF_SNOOZE_MINUTES,
+    DEFAULT_QUIET_ENABLED,
+    DEFAULT_QUIET_START,
+    DEFAULT_QUIET_END,
+    DEFAULT_QUIET_ALERTS,
+    DEFAULT_SNOOZE_MINUTES,
+    MAX_SNOOZE_MINUTES,
+    ALERT_KINDS,
     ALERT_TEXT_OPTIONS,
     CONF_ROUTE_API_CONTACT,
     CONF_AIRCRAFT_PHOTOS,
@@ -452,6 +467,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_units()
             if user_input.get("config_area") == "text":
                 return await self.async_step_alert_text()
+            if user_input.get("config_area") == "quiet":
+                return await self.async_step_quiet_hours()
             return await self.async_step_notifications_settings()
 
         schema = vol.Schema({
@@ -459,6 +476,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 "basic": "📊 Basic Settings (connection, updates, range)",
                 "units": "📐 Units (aeronautical, imperial or metric)",
                 "notifications": "🔔 Notifications & Alerts",
+                "quiet": "🌙 Quiet Hours & Snooze",
                 "text": "✏️ Alert Wording (your own titles and messages)",
             })
         })
@@ -608,6 +626,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             # A cleared field is left out of user_input; store it as empty so
             # the merge below doesn't keep the old list
             user_input[CONF_WATCHLIST] = watchlist.clean(user_input.get(CONF_WATCHLIST))
+            user_input[CONF_WATCHLIST_TYPES] = watchlist.clean_types(
+                user_input.get(CONF_WATCHLIST_TYPES)
+            )
+            user_input[CONF_WATCHLIST_OPERATORS] = watchlist.clean_operators(
+                user_input.get(CONF_WATCHLIST_OPERATORS)
+            )
 
             # Merge over existing options — each step only edits its own
             # fields, so replacing wholesale would wipe the other step's
@@ -644,6 +668,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_WATCHLIST,
                     description={"suggested_value": current_options.get(CONF_WATCHLIST) or ""},
                 ): str,
+                vol.Optional(
+                    CONF_WATCHLIST_TYPES,
+                    description={"suggested_value": current_options.get(CONF_WATCHLIST_TYPES) or ""},
+                ): str,
+                vol.Optional(
+                    CONF_WATCHLIST_OPERATORS,
+                    description={"suggested_value": current_options.get(CONF_WATCHLIST_OPERATORS) or ""},
+                ): str,
             }
         )
 
@@ -661,6 +693,54 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 "altitude_unit": units.altitude_name,
             },
         )
+
+    async def async_step_quiet_hours(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Quiet hours, and how long the Snooze button on a notification lasts."""
+        current_options = self.config_entry.options
+
+        if user_input is not None:
+            # An emptied checklist is left out of user_input; store it as
+            # empty so the merge below doesn't keep the old one
+            user_input.setdefault(CONF_QUIET_ALERTS, [])
+            return self.async_create_entry(
+                title="",
+                data={**self.config_entry.options, **user_input},
+            )
+
+        schema = vol.Schema({
+            vol.Optional(
+                CONF_QUIET_ENABLED,
+                default=current_options.get(CONF_QUIET_ENABLED, DEFAULT_QUIET_ENABLED),
+            ): bool,
+            vol.Optional(
+                CONF_QUIET_START,
+                default=current_options.get(CONF_QUIET_START, DEFAULT_QUIET_START),
+            ): TimeSelector(),
+            vol.Optional(
+                CONF_QUIET_END,
+                default=current_options.get(CONF_QUIET_END, DEFAULT_QUIET_END),
+            ): TimeSelector(),
+            vol.Optional(
+                CONF_QUIET_ALERTS,
+                description={
+                    "suggested_value": current_options.get(CONF_QUIET_ALERTS, DEFAULT_QUIET_ALERTS)
+                },
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=list(ALERT_KINDS),
+                    multiple=True,
+                    mode=SelectSelectorMode.LIST,
+                    translation_key="alert_kinds",
+                )
+            ),
+            vol.Optional(
+                CONF_SNOOZE_MINUTES,
+                default=current_options.get(CONF_SNOOZE_MINUTES, DEFAULT_SNOOZE_MINUTES),
+            ): vol.All(vol.Coerce(int), vol.Range(min=0, max=MAX_SNOOZE_MINUTES)),
+        })
+        return self.async_show_form(step_id="quiet_hours", data_schema=schema)
 
     async def async_step_alert_text(
         self, user_input: dict[str, Any] | None = None

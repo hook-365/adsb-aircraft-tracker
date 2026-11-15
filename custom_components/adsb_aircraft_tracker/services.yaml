@@ -27,3 +27,40 @@ install_sentences:
     Write the custom sentences YAML file to config/custom_sentences/en/ so
     Home Assistant Assist can recognize aircraft queries like "what plane is that?"
     Restart Home Assistant after running this service for sentences to take effect.
+
+snooze_alerts:
+  name: Snooze Alerts
+  description: >
+    Stop alert notifications for a while. Alert events still fire, so
+    automations keep working. A duration of 0 turns the alerts back on.
+  fields:
+    duration:
+      name: Duration
+      description: Minutes to stay silent. Leave empty for the snooze time set in the options; 0 ends the snooze.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 1440
+          unit_of_measurement: min
+    alerts:
+      name: Alerts
+      description: Which alerts to snooze. Leave empty for all of them except emergency squawks.
+      required: false
+      selector:
+        select:
+          multiple: true
+          translation_key: alert_kinds
+          options:
+            - military
+            - close_aircraft
+            - overhead
+            - emergency
+            - watchlist
+    confirm:
+      name: Tell the devices
+      description: Send a short notification saying which alerts are off and until when.
+      required: false
+      default: false
+      selector:
+        boolean:

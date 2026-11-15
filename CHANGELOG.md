@@ -10,6 +10,26 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Quiet hours.** A new **CONFIGURE → Quiet Hours & Snooze** page: pick a
+  start and end time and which alerts stay quiet in between (by default
+  military, low aircraft and overhead; emergency squawks and your watched
+  aircraft still come through). Off until you turn it on.
+- **Snooze.** Alert notifications have a **Snooze** button that silences
+  that kind of alert for an hour (adjustable, 0 removes the button; emergency
+  squawks have none). Every configured device gets a short note saying what
+  is off and until when. The new `adsb_aircraft_tracker.snooze_alerts`
+  service does the same from an automation.
+- **Alert events.** Every alert also fires an `adsb_aircraft_tracker_alert`
+  event with the alert kind, the aircraft's details and the notification
+  text, so an automation can flash a light or announce it on a speaker
+  without reading sensor attributes. It fires with no notify device set up
+  and during quiet hours or a snooze too (`notified` is then false).
+- **Watch aircraft types and operators.** Two new fields next to the
+  watchlist: ICAO type codes (`B52, C17, B74*`, a star matches everything
+  that starts that way) and operator names (`NASA, Air Force`), for aircraft
+  you want to know about without knowing the tail number.
+
 ## [1.10.1] - 2026-11-15
 
 ### Added

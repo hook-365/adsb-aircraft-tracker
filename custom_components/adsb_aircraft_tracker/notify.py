@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -22,7 +24,22 @@ from .const import (
     CONF_OVERHEAD_ANGLE,
     CONF_OVERHEAD_MAX_ALTITUDE,
     CONF_WATCHLIST,
+    CONF_WATCHLIST_TYPES,
+    CONF_WATCHLIST_OPERATORS,
+    CONF_QUIET_ENABLED,
+    CONF_QUIET_START,
+    CONF_QUIET_END,
+    CONF_QUIET_ALERTS,
+    CONF_SNOOZE_MINUTES,
+    ALERT_KINDS,
+    ALERT_KIND_NAMES,
     ALERT_TEXT_OPTIONS,
+    EVENT_ALERT,
+    DEFAULT_QUIET_ENABLED,
+    DEFAULT_QUIET_START,
+    DEFAULT_QUIET_END,
+    DEFAULT_QUIET_ALERTS,
+    DEFAULT_SNOOZE_MINUTES,
     DEFAULT_MILITARY_NOTIFICATIONS,
     DEFAULT_CLOSE_AIRCRAFT_ENABLED,
     DEFAULT_CLOSE_AIRCRAFT_DISTANCE,
@@ -33,7 +50,7 @@ from .const import (
     DEFAULT_OVERHEAD_MAX_ALTITUDE,
     DEFAULT_UPDATE_INTERVAL,
 )
-from . import alert_text, watchlist
+from . import alert_text, quiet, watchlist
 from .coordinator import ADSBDataUpdateCoordinator
 from .geo import distance_and_bearing, min_ground_distance_ahead, zenith_angle
 from .tts_format import heading_to_cardinal
@@ -46,6 +63,17 @@ OVERHEAD_RENOTIFY_SECONDS = 300
 # has been out of range for this long, so one flickering at the edge of
 # reception alerts once.
 WATCHLIST_RENOTIFY_SECONDS = 900
+
+# hass.data key: entry id -> {alert kind -> time (UTC) the snooze ends}. Kept
+# outside the entry's own data so a snooze survives the reload that follows
+# an options change.
+SNOOZE_DATA = f"{DOMAIN}_snooze"
+# The "Snooze" button on a notification comes back from the mobile app as
+# this event, carrying the action id "<SNOOZE_ACTION>_<entry id>_<alert kind>"
+MOBILE_APP_ACTION_EVENT = "mobile_app_notification_action"
+SNOOZE_ACTION = "ADSB_SNOOZE"
+# Emergencies get no snooze button and are left out of "snooze everything"
+SNOOZABLE_KINDS = tuple(kind for kind in ALERT_KINDS if kind != "emergency")
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -185,9 +213,113 @@ class ADSBNotificationManager:
         return DEFAULT_OVERHEAD_MAX_ALTITUDE if value is None else value
 
     @property
-    def watched_aircraft(self) -> frozenset[str]:
-        """The user's watchlist as comparison keys; empty = alert off."""
-        return watchlist.keys(self.config_entry.options.get(CONF_WATCHLIST))
+    def watched_aircraft(self) -> watchlist.Watch:
+        """The user's watchlist in comparison form; empty (falsy) = alert off."""
+        options = self.config_entry.options
+        return watchlist.build(
+            options.get(CONF_WATCHLIST),
+            options.get(CONF_WATCHLIST_TYPES),
+            options.get(CONF_WATCHLIST_OPERATORS),
+        )
+
+    @property
+    def snooze_minutes(self) -> int:
+        """How long the Snooze button silences an alert kind; 0 = no button."""
+        value = self.config_entry.options.get(CONF_SNOOZE_MINUTES)
+        return DEFAULT_SNOOZE_MINUTES if value is None else int(value)
+
+    @property
+    def _snoozed(self) -> dict[str, datetime]:
+        """Alert kind -> time (UTC) its snooze ends."""
+        return self.hass.data.setdefault(SNOOZE_DATA, {}).setdefault(
+            self.config_entry.entry_id, {}
+        )
+
+    def snoozed_until(self) -> dict[str, datetime]:
+        """The snoozes still running; ended ones are dropped."""
+        now = dt_util.utcnow()
+        snoozed = self._snoozed
+        for kind in [kind for kind, until in snoozed.items() if until <= now]:
+            del snoozed[kind]
+        return dict(snoozed)
+
+    def in_quiet_hours(self, kind: str) -> bool:
+        """True when quiet hours are on, cover this alert kind, and it is that time."""
+        options = self.config_entry.options
+        if not options.get(CONF_QUIET_ENABLED, DEFAULT_QUIET_ENABLED):
+            return False
+        if kind not in options.get(CONF_QUIET_ALERTS, DEFAULT_QUIET_ALERTS):
+            return False
+        return quiet.in_window(
+            dt_util.now().time(),
+            quiet.parse_time(options.get(CONF_QUIET_START, DEFAULT_QUIET_START)),
+            quiet.parse_time(options.get(CONF_QUIET_END, DEFAULT_QUIET_END)),
+        )
+
+    def muted_by(self, kind: str) -> str | None:
+        """"snooze" or "quiet_hours" when this alert kind is silenced right now."""
+        if kind in self.snoozed_until():
+            return "snooze"
+        if self.in_quiet_hours(kind):
+            return "quiet_hours"
+        return None
+
+    @callback
+    def async_start(self) -> CALLBACK_TYPE:
+        """Listen for the Snooze button; returns the function that stops it."""
+        return self.hass.bus.async_listen(MOBILE_APP_ACTION_EVENT, self._async_handle_action)
+
+    def _snooze_action(self, kind: str) -> str:
+        """Action id of the Snooze button for one alert kind of this entry."""
+        return f"{SNOOZE_ACTION}_{self.config_entry.entry_id}_{kind}"
+
+    async def _async_handle_action(self, event: Event) -> None:
+        """A notification button was pressed on a phone: is it our Snooze?"""
+        action = event.data.get("action") or ""
+        prefix = self._snooze_action("")
+        if not action.startswith(prefix):
+            return
+        kind = action[len(prefix):]
+        if kind in ALERT_KINDS:
+            await self.async_snooze([kind], self.snooze_minutes or DEFAULT_SNOOZE_MINUTES)
+
+    async def async_snooze(
+        self, kinds: list[str] | None = None, minutes: int | None = None, confirm: bool = True
+    ) -> dict[str, datetime]:
+        """Silence alert kinds for a while; 0 minutes ends their snooze.
+
+        No kinds = every kind except emergencies. With `confirm`, the
+        configured devices are told, so a snooze started from one phone
+        is not a mystery on the others. Returns the snoozes now running.
+        """
+        kinds = [kind for kind in (kinds or SNOOZABLE_KINDS) if kind in ALERT_KINDS]
+        minutes = self.snooze_minutes or DEFAULT_SNOOZE_MINUTES if minutes is None else minutes
+        snoozed = self._snoozed
+        if minutes > 0:
+            until = dt_util.utcnow() + timedelta(minutes=minutes)
+            snoozed.update({kind: until for kind in kinds})
+            title = "🔕 Alerts snoozed"
+            state = f"off until {dt_util.as_local(until).strftime('%H:%M')}"
+        else:
+            for kind in kinds:
+                snoozed.pop(kind, None)
+            title = "🔔 Alerts back on"
+            state = "back on"
+        _LOGGER.debug("Alerts %s: %s", state, ", ".join(kinds))
+
+        if confirm and kinds:
+            names = [ALERT_KIND_NAMES[kind] for kind in kinds]
+            listed = names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
+            await self._async_call_notify({
+                "title": title,
+                "message": f"{listed} alerts are {state}.",
+                "data": {
+                    "notification_icon": "mdi:bell-sleep" if minutes > 0 else "mdi:bell-ring",
+                    # One snooze notice at a time, replaced by the next
+                    "tag": f"{DOMAIN}_snooze_{self.config_entry.entry_id}",
+                },
+            })
+        return self.snoozed_until()
 
     def _text_values(self, aircraft: dict[str, Any], **extra: Any) -> dict[str, str]:
         """Values for the {tokens} of a custom alert title or message."""
@@ -245,8 +377,7 @@ class ADSBNotificationManager:
         The coordinator passes the just-fetched aircraft list; falls back to
         the last stored data if called without one.
         """
-        if not self.notification_devices:
-            return
+        # Runs without a notify device too: every alert is also an event
         if aircraft_list is None:
             if not self.coordinator.data:
                 return
@@ -416,7 +547,7 @@ class ADSBNotificationManager:
         self._last_emergency_aircraft = current
     
     async def _check_watchlist(
-        self, aircraft_list: list[dict[str, Any]], watched: frozenset[str]
+        self, aircraft_list: list[dict[str, Any]], watched: watchlist.Watch
     ) -> None:
         """Notify when an aircraft on the user's watchlist comes into range.
 
@@ -426,12 +557,13 @@ class ADSBNotificationManager:
         now_ts = time.monotonic()
         for plane in aircraft_list or []:
             hex_code = plane.get("hex")
-            if not hex_code or not watchlist.match(plane, watched):
+            matched = watchlist.match(plane, watched) if hex_code else None
+            if not matched:
                 continue
             last = self._watchlist_last_seen.get(hex_code)
             self._watchlist_last_seen[hex_code] = now_ts
             if last is None:
-                await self._send_watchlist_notification(plane)
+                await self._send_watchlist_notification(plane, matched)
 
         self._watchlist_last_seen = {
             hex_code: seen
@@ -475,6 +607,7 @@ class ADSBNotificationManager:
         await self._send_notification(
             title=title,
             message=message,
+            kind="military",
             notification_icon="mdi:shield-airplane",
             color="green",
             image=aircraft.get("photo_large"),
@@ -529,6 +662,7 @@ class ADSBNotificationManager:
         await self._send_notification(
             title=title,
             message=message,
+            kind="close_aircraft",
             notification_icon="mdi:airplane-alert",
             color="red",
             image=aircraft.get("photo_large"),
@@ -575,6 +709,7 @@ class ADSBNotificationManager:
         await self._send_notification(
             title=title,
             message=message,
+            kind="overhead",
             notification_icon="mdi:airplane",
             color="blue",
             image=aircraft.get("photo_large"),
@@ -606,6 +741,7 @@ class ADSBNotificationManager:
         await self._send_notification(
             title=title,
             message=message,
+            kind="emergency",
             notification_icon="mdi:alert",
             color="red",
             priority="high",
@@ -613,8 +749,13 @@ class ADSBNotificationManager:
             aircraft=aircraft,
         )
     
-    async def _send_watchlist_notification(self, aircraft: dict[str, Any]) -> None:
-        """Send the "one of your watched aircraft is here" notification."""
+    async def _send_watchlist_notification(
+        self, aircraft: dict[str, Any], matched: str | None = None
+    ) -> None:
+        """Send the "one of your watched aircraft is here" notification.
+
+        `matched` is what put it on the list: hex, tail, flight, type or operator.
+        """
         tail = aircraft.get("tail") or "Unknown"
         flight = (aircraft.get("flight") or "").strip()
         # Watched by hex code and nothing else known: show the hex code
@@ -646,27 +787,117 @@ class ADSBNotificationManager:
         await self._send_notification(
             title=title,
             message=message,
+            kind="watchlist",
             notification_icon="mdi:star",
             color="yellow",
             image=aircraft.get("photo_large"),
             aircraft=aircraft,
+            event_extra={"matched": matched},
         )
+
+    def _fire_event(
+        self,
+        kind: str,
+        title: str,
+        message: str,
+        aircraft: dict[str, Any] | None,
+        url: str,
+        muted_by: str | None,
+        notified: bool,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        """Put the alert on the event bus, for automations.
+
+        Fired for every alert, also one silenced by quiet hours or a snooze
+        (`notified` false, `muted_by` says which) and with no notify device
+        configured at all.
+        """
+        plane = aircraft or {}
+        tail = plane.get("tail")
+        operator = plane.get("operator")
+        data = {
+            "entry_id": self.config_entry.entry_id,
+            "kind": kind,
+            "title": title,
+            "message": message,
+            "notified": notified,
+            "muted_by": muted_by,
+            "url": url,
+            "hex": plane.get("hex"),
+            "tail": None if tail == "Unknown" else tail,
+            "flight": (plane.get("flight") or "").strip() or None,
+            "aircraft_type": plane.get("aircraft_type"),
+            "description": plane.get("description"),
+            "operator": None if operator == "Unknown" else operator,
+            "altitude_ft": plane.get("altitude_ft"),
+            "speed_kts": plane.get("speed_kts"),
+            "vertical_rate_fpm": plane.get("vertical_rate_fpm"),
+            "distance_mi": plane.get("distance_mi"),
+            "direction": plane.get("direction"),
+            "heading": plane.get("heading"),
+            "latitude": plane.get("latitude"),
+            "longitude": plane.get("longitude"),
+            "squawk": plane.get("squawk"),
+            "route_origin": plane.get("route_origin"),
+            "route_destination": plane.get("route_destination"),
+            "photo": plane.get("photo_large"),
+        }
+        data.update(extra or {})
+        self.hass.bus.async_fire(EVENT_ALERT, data)
+
+    async def _async_call_notify(self, data: dict[str, Any]) -> None:
+        """Call every configured notify service with the same payload."""
+        for service in self.notification_devices:
+            try:
+                await self.hass.services.async_call("notify", service, data)
+                _LOGGER.debug("Sent notification to notify.%s: %s", service, data.get("title"))
+            except Exception as err:  # noqa: BLE001 - one bad target must not stop the others
+                _LOGGER.error("Failed to send notification to notify.%s: %s", service, err)
 
     async def _send_notification(
         self,
         title: str,
         message: str,
+        kind: str,
         notification_icon: str = "mdi:airplane",
         color: str = "blue",
         priority: str = "normal",
         image: str | None = None,
         aircraft: dict[str, Any] | None = None,
+        event_extra: dict[str, Any] | None = None,
     ) -> None:
-        """Send the notification to every configured notify service."""
-        if not self.notification_devices:
-            return
+        """Fire the alert event and notify every configured notify service.
+
+        The event always fires; the notification is left out during quiet
+        hours and while the alert kind is snoozed.
+        """
         url = self.aircraft_url(aircraft)
-            
+        muted_by = self.muted_by(kind)
+        devices = self.notification_devices
+        self._fire_event(
+            kind, title, message, aircraft, url, muted_by,
+            notified=bool(devices) and muted_by is None, extra=event_extra,
+        )
+        if muted_by:
+            _LOGGER.debug("%s alert not sent (%s): %s", kind, muted_by, title)
+            return
+        if not devices:
+            return
+
+        actions = [
+            {
+                "action": "URI",
+                "title": "🗺️ View on ADSB Tracker",
+                "uri": url,
+            }
+        ]
+        snooze_minutes = self.snooze_minutes
+        if snooze_minutes > 0 and kind in SNOOZABLE_KINDS:
+            actions.append({
+                "action": self._snooze_action(kind),
+                "title": f"🔕 Snooze {quiet.duration_text(snooze_minutes)}",
+            })
+
         data = {
             "title": title,
             "message": message,
@@ -674,13 +905,7 @@ class ADSBNotificationManager:
                 "notification_icon": notification_icon,
                 "color": color,
                 "clickAction": url,
-                "actions": [
-                    {
-                        "action": "URI",
-                        "title": "🗺️ View on ADSB Tracker",
-                        "uri": url,
-                    }
-                ],
+                "actions": actions,
             }
         }
 
@@ -688,15 +913,9 @@ class ADSBNotificationManager:
             # Shown by the mobile apps as the expanded notification picture
             data["data"]["image"] = image
 
-        _LOGGER.debug("Notification data with url %s: %s", url, data)
-        
         if priority == "high":
             data["data"]["ttl"] = 0
             data["data"]["priority"] = "high"
-        
-        for service in self.notification_devices:
-            try:
-                await self.hass.services.async_call("notify", service, data)
-                _LOGGER.debug("Sent notification to notify.%s: %s", service, title)
-            except Exception as err:  # noqa: BLE001 - one bad target must not stop the others
-                _LOGGER.error("Failed to send notification to notify.%s: %s", service, err)
+
+        _LOGGER.debug("Notification data with url %s: %s", url, data)
+        await self._async_call_notify(data)

@@ -10,6 +10,21 @@ A comprehensive Home Assistant integration for tracking aircraft using ADSB data
 
 ## What's New
 
+**1.11.0 — Quiet hours, snooze, alert events and a wider watchlist.**
+- **Quiet hours.** Pick a start and end time and which alerts stay silent in
+  between, in **CONFIGURE → Quiet Hours & Snooze**. Emergency squawks and
+  your watched aircraft still come through unless you say otherwise.
+- **Snooze.** Every alert notification has a **Snooze 1 h** button that
+  silences that kind of alert only; the time is adjustable. See
+  [Quiet hours and snooze](#quiet-hours-and-snooze).
+- **Alert events.** Every alert fires an `adsb_aircraft_tracker_alert` event
+  with the aircraft's details, so an automation can flash a light or announce
+  it on a speaker. See [Alert events](#alert-events).
+- **Watch types and operators.** Put ICAO type codes (`B52, C17, B74*`) or
+  operator names (`NASA, Air Force`) on your watchlist, for aircraft you want
+  to know about without knowing the tail number. See
+  [Watched aircraft](#watched-aircraft).
+
 **1.10.0 — Watched aircraft.** Get an alert whenever an aircraft on your own
 list of tail numbers, ICAO hex codes or callsigns comes into range; set it in
 **CONFIGURE → Notifications → Watched Aircraft**, see
@@ -79,7 +94,9 @@ offers you the update, so you can see what changed before you install it.
 - Overhead alerts when an aircraft is almost straight above you, at any altitude (off by default)
 - Your own wording for every alert title and message
 - Emergency squawk code notifications (7700/7600/7500)
-- Watched aircraft: alerts for your own list of tail numbers, hex codes or callsigns
+- Watched aircraft: alerts for your own list of tail numbers, hex codes or callsigns, aircraft types and operators
+- Quiet hours, and a Snooze button on every alert
+- An event for every alert, to trigger your own automations
 - Customizable external ADSB URL links
 
 🗣️ **Voice / Assist Support**
@@ -386,6 +403,12 @@ service: adsb_aircraft_tracker.install_sentences
 # Force a fresh military database download
 service: adsb_aircraft_tracker.load_military_database
 
+# Silence alert notifications for a while (see "Quiet hours and snooze")
+service: adsb_aircraft_tracker.snooze_alerts
+data:
+  duration: 120          # minutes; 0 turns the alerts back on
+  alerts: [close_aircraft, overhead]   # leave out for all except emergency
+
 # Update the aircraft types database from tar1090-db
 service: adsb_aircraft_tracker.update_aircraft_types_database
 ```
@@ -451,6 +474,46 @@ Details:
 - Only aircraft inside your **Distance Limit** count, like every other alert.
 - A watched aircraft that is also military, low or overhead gets those alerts too.
 
+Two more fields catch aircraft you can't list one by one:
+
+- **Watched Aircraft Types** takes ICAO type codes, e.g. `B52, C17, A388`. Every aircraft of that type alerts, whichever tail number it has. End a code with a star for everything that starts that way: `B74*` is every 747. The type code is what your feeder's map shows as the aircraft type.
+- **Watched Operators** takes owner or operator names, e.g. `NASA, Air Force`. An entry matches when it is part of the operator name, in any case: `air force` matches `United States Air Force`. This needs a feeder that sends operators (readsb or tar1090 with the extended aircraft database); without one the field does nothing.
+
+A common type or a big airline alerts for every one of them, once per visit each. Start narrow.
+
+### Quiet hours and snooze
+
+Go to **CONFIGURE → Quiet Hours & Snooze**.
+
+**Quiet hours** silence the alerts you tick between two times of day, e.g. 22:00 to 07:00 (the end may be the next morning). By default military, low aircraft and overhead alerts go quiet, and emergency squawks and your watched aircraft still come through. Quiet hours are off until you turn them on.
+
+**Snooze**: every alert notification has a **🔕 Snooze 1 h** button. It silences that kind of alert only, so snoozing the low-aircraft alerts during a busy afternoon does not hide a military one. Every configured device gets a short note saying what is off and until when. Change the time under **Snooze time**; 0 removes the button. Emergency squawk alerts have no snooze button.
+
+Details:
+- A silenced alert is not sent later. It still fires its [alert event](#alert-events), with `notified: false`.
+- A snooze is kept across an options change but not across a Home Assistant restart.
+- The `adsb_aircraft_tracker.snooze_alerts` service snoozes from an automation or a dashboard button: `duration` in minutes (0 = back on), `alerts` to pick the kinds (default: all except emergency), `confirm: true` to send the note to the devices.
+
+### Alert events
+
+Every alert also fires an `adsb_aircraft_tracker_alert` event, so automations can react to an alert directly. It fires whether or not a notify device is configured, and also while the alert is silenced by quiet hours or a snooze.
+
+| Field | Content |
+|-------|---------|
+| `kind` | `military`, `close_aircraft`, `overhead`, `emergency` or `watchlist` |
+| `title`, `message` | the notification text, with your own wording if you set one |
+| `notified` | `true` when a notification was sent |
+| `muted_by` | `quiet_hours` or `snooze` when it was silenced, otherwise empty |
+| `matched` | watchlist alerts only: `hex`, `tail`, `flight`, `type` or `operator` |
+| `hex`, `tail`, `flight`, `aircraft_type`, `description`, `operator` | the aircraft |
+| `altitude_ft`, `speed_kts`, `vertical_rate_fpm`, `squawk` | flight data, always in feet and knots |
+| `distance_mi`, `direction`, `heading`, `latitude`, `longitude` | position: miles and bearing from home, and where it is going |
+| `route_origin`, `route_destination` | airport codes, when the route is known |
+| `url`, `photo` | the tap-through link and the photo, when there is one |
+| `entry_id` | which feeder, if you have more than one |
+
+Values that are not known are empty.
+
 ### Your own wording
 
 Every alert has a built-in title and message. To change them, go to **CONFIGURE → Alert Wording** and edit the title and/or message of the alerts you want to reword.
@@ -506,6 +569,40 @@ automation:
         data:
           title: "Military Aircraft Detected"
           message: "{{ state_attr('sensor.adsb_military_aircraft_details', 'summary') }}"
+```
+
+### Announce an alert on a speaker
+Uses the [alert event](#alert-events), so it follows your alert settings and wording:
+```yaml
+automation:
+  - alias: "Announce military aircraft"
+    trigger:
+      - platform: event
+        event_type: adsb_aircraft_tracker_alert
+        event_data:
+          kind: military
+    action:
+      - service: tts.speak
+        target:
+          entity_id: tts.home_assistant_cloud
+        data:
+          media_player_entity_id: media_player.living_room
+          message: >
+            Military aircraft: {{ trigger.event.data.description }},
+            {{ trigger.event.data.distance_mi }} miles away.
+```
+
+### Snooze alerts while a helper is on
+```yaml
+automation:
+  - alias: "No aircraft alerts during nap time"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.nap_time
+    action:
+      - service: adsb_aircraft_tracker.snooze_alerts
+        data:
+          duration: "{{ 180 if trigger.to_state.state == 'on' else 0 }}"
 ```
 
 ### Close Aircraft TTS

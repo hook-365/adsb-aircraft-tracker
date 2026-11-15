@@ -17,6 +17,7 @@ from homeassistant.helpers.service import (
     async_set_service_schema,
 )
 import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
 
 from .const import (
     DOMAIN,
@@ -25,6 +26,8 @@ from .const import (
     CONF_ROUTE_API_CONTACT,
     CONF_AIRCRAFT_PHOTOS,
     DEFAULT_AIRCRAFT_PHOTOS,
+    ALERT_KINDS,
+    MAX_SNOOZE_MINUTES,
     INTEGRATION_VERSION,
     OVERHEAD_DIAGRAM_URL,
     MILITARY_DB_REFRESH_INTERVAL,
@@ -140,6 +143,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up notification monitoring
     coordinator.notification_manager = notification_manager
+    # The Snooze button on a notification
+    entry.async_on_unload(notification_manager.async_start())
 
     # Reload this entry when options change so new settings take effect
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
@@ -272,6 +277,34 @@ async def _async_setup_services(hass: HomeAssistant, entry: ConfigEntry, coordin
         load_military_database_service,
         supports_response=True,
     )
+
+    async def snooze_alerts_service(call: ServiceCall) -> dict:
+        """Silence alert kinds for a while (0 minutes = back on), on every feeder."""
+        snoozed: dict[str, str] = {}
+        for entry_data in hass.data.get(DOMAIN, {}).values():
+            running = await entry_data["notification_manager"].async_snooze(
+                call.data.get("alerts"),
+                call.data.get("duration"),
+                confirm=call.data.get("confirm", False),
+            )
+            snoozed.update({kind: until.isoformat() for kind, until in running.items()})
+        return {"snoozed_until": snoozed}
+
+    # Shared by every entry, so registered once
+    if not hass.services.has_service(DOMAIN, "snooze_alerts"):
+        hass.services.async_register(
+            DOMAIN,
+            "snooze_alerts",
+            snooze_alerts_service,
+            schema=vol.Schema({
+                vol.Optional("duration"): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=MAX_SNOOZE_MINUTES)
+                ),
+                vol.Optional("alerts"): vol.All(cv.ensure_list, [vol.In(ALERT_KINDS)]),
+                vol.Optional("confirm", default=False): cv.boolean,
+            }),
+            supports_response=SupportsResponse.OPTIONAL,
+        )
 
 
 _SENTENCES_YAML = """\
