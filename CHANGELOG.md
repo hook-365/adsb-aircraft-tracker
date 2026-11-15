@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-15
+
 ### Added
 - **Quiet hours.** A new **CONFIGURE → Quiet Hours & Snooze** page: pick a
   start and end time and which alerts stay quiet in between (by default
@@ -240,7 +242,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.11.0
 [1.10.1]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.10.1
 [1.10.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.10.0
 [1.9.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.9.0
