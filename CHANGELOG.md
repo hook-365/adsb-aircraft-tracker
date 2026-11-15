@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-11-15
+
 ### Added
 - **Restore built-in wording.** The **Alert Wording** page has a checklist at
   the bottom: tick an alert and press Submit to put its title and message
@@ -218,7 +220,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.10.1...HEAD
+[1.10.1]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.10.1
 [1.10.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.10.0
 [1.9.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.9.0
 [1.8.3]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.8.3
