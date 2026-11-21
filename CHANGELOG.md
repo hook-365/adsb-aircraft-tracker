@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-11-21
+
 ### Fixed
 - **Low-aircraft alert failed for aircraft with no type code.** When the
   closest low aircraft had no ICAO type (common for TIS-B and ADS-R targets
@@ -255,7 +257,8 @@ intents and all six services behave as before.
 
 Older releases: see the [GitHub releases page](https://github.com/hook-365/adsb-aircraft-tracker/releases).
 
-[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/hook-365/adsb-aircraft-tracker/compare/v1.11.1...HEAD
+[1.11.1]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.11.1
 [1.11.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.11.0
 [1.10.1]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.10.1
 [1.10.0]: https://github.com/hook-365/adsb-aircraft-tracker/releases/tag/v1.10.0
