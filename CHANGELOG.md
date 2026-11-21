@@ -10,6 +10,19 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **Low-aircraft alert failed for aircraft with no type code.** When the
+  closest low aircraft had no ICAO type (common for TIS-B and ADS-R targets
+  and unregistered hexes), the alert raised
+  `'NoneType' object has no attribute 'startswith'` on every update and was
+  never sent. While that aircraft stayed closest, emergency-squawk and
+  watchlist alerts were skipped too. Such aircraft now get the alert as an
+  unknown type ([#12](https://github.com/hook-365/adsb-aircraft-tracker/issues/12)).
+- **One failing alert check no longer blocks the others.** Each check
+  (military, overhead, low aircraft, emergency squawk, watchlist) now runs
+  on its own; if one fails it is logged with a traceback and the rest still
+  run.
+
 ## [1.11.0] - 2026-11-15
 
 ### Added

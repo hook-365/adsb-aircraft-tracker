@@ -383,29 +383,36 @@ class ADSBNotificationManager:
                 return
             aircraft_list = self.coordinator.data.get("aircraft", [])
 
-        # Check for military aircraft notifications
+        # Each check runs on its own: one that fails is logged and the rest
+        # still run, so a bug in one alert can't silence the others (#12)
+        checks: list[tuple[str, Any, tuple[Any, ...]]] = []
+
         if self.military_notifications_enabled:
-            await self._check_military_aircraft(aircraft_list)
-        
+            checks.append(("military", self._check_military_aircraft, (aircraft_list,)))
+
         # Overhead runs before the low-aircraft check so that an aircraft
         # matching both gets one alert, not two
         if self.overhead_enabled:
-            await self._check_overhead_aircraft(aircraft_list)
+            checks.append(("overhead", self._check_overhead_aircraft, (aircraft_list,)))
 
-        # Check for close aircraft notifications  
         if self.close_aircraft_enabled:
-            await self._check_close_aircraft(aircraft_list)
-        
-        # Check for emergency squawk notifications
-        if self.emergency_notifications_enabled:
-            await self._check_emergency_squawks(aircraft_list)
+            checks.append(("low aircraft", self._check_close_aircraft, (aircraft_list,)))
 
-        # Check for the user's own watched aircraft
+        if self.emergency_notifications_enabled:
+            checks.append(("emergency squawk", self._check_emergency_squawks, (aircraft_list,)))
+
+        # The user's own watched aircraft
         watched = self.watched_aircraft
         if watched:
-            await self._check_watchlist(aircraft_list, watched)
+            checks.append(("watchlist", self._check_watchlist, (aircraft_list, watched)))
         else:
             self._watchlist_last_seen = {}
+
+        for name, check, args in checks:
+            try:
+                await check(*args)
+            except Exception:  # noqa: BLE001 - keep the other alerts working
+                _LOGGER.exception("Error in the %s alert check", name)
 
     async def _check_military_aircraft(self, aircraft_list: list[dict[str, Any]]) -> None:
         """Check and notify about military aircraft."""
@@ -622,14 +629,15 @@ class ADSBNotificationManager:
         altitude = aircraft.get("altitude_ft", 0)
         units = self.coordinator.units
         speed = aircraft.get("speed_kts", 0)
-        description = aircraft.get("description", "Unknown aircraft")
-        
-        vrate = aircraft.get("vertical_rate_fpm", 0)
+        # "or", not a .get() default: the keys are always present and can be None
+        description = aircraft.get("description") or "Unknown aircraft"
+
+        vrate = aircraft.get("vertical_rate_fpm") or 0
         trend = "↗️" if vrate > 500 else "↘️" if vrate < -500 else "→"
-        
+
         # Determine aircraft type emoji
         is_small = any(term in description.upper() for term in ["CESSNA", "PIPER", "BEECH", "CIRRUS"])
-        is_heli = "HELICOPTER" in description.upper() or aircraft.get("aircraft_type", "").startswith("H")
+        is_heli = "HELICOPTER" in description.upper() or (aircraft.get("aircraft_type") or "").startswith("H")
         
         if is_heli:
             emoji = "🚁"
